@@ -1,7 +1,6 @@
-import LoginScreen from "@/components/LoginScreen";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 
-export default function Index() {
+export default function NotFoundScreen() {
   return (
     <View
       style={{
@@ -10,7 +9,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <LoginScreen />
+      <Text>Testing</Text>
     </View>
   );
 }

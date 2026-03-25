@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node app.js",
-    "dev": "tsx watch app.js",
+    "start": "node src/app.js",
+    "dev": "tsx watch src/app.js",
     "build": "tsc"
   },
   "dependencies": {
