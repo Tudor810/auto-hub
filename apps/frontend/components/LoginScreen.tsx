@@ -1,18 +1,19 @@
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-
 import { Link } from 'expo-router';
+import React, { useState } from 'react';
+
+import {
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { Button, HelperText, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import ErrorMessage from './ErrorMessage';
+import { useInputProps } from '@/hooks/useInputProps';
 
 interface LoginScreenProps {
   onSignIn?: (email: string, pass: string) => void;
@@ -21,16 +22,23 @@ interface LoginScreenProps {
   onForgotPassword?: () => void;
 }
 
-const imagePlaceholder = require("../assets/images/logo.png");
+
+
 
 export default function LoginScreen({
   onSignIn,
   onGoogleSignIn,
-  onSignUpNavigation,
   onForgotPassword,
 }: LoginScreenProps) {
+
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 450;
+
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSignIn = () => {
     if (onSignIn) {
@@ -38,238 +46,239 @@ export default function LoginScreen({
     }
   };
 
+  onSignIn = (email: string, password: string) => {
+    console.log('Signing in with:', email, password);
+
+    if(email.trim() === '') {
+      setEmailError('Please enter your email address.');
+      return;
+    } 
+
+    if(email.trim() === '' || password.trim() === '') {
+      setError('Please enter both email and password.');
+      return;
+    }
+
+    setEmailError('');
+    setError(''); // Clear previous errors
+
+  }
+  const emailInputProps = useInputProps(undefined, !!emailError);
+  const passwordInputProps = useInputProps(undefined, !!error);
+  const theme = useTheme<any>();
+  const styles = makeStyles(theme);
+  const imagePlaceholder = require("../assets/images/logo_dark.png");
+
   return (
-    <KeyboardAvoidingView
+    // 2. Replace KeyboardAvoidingView & ScrollView with KeyboardAwareScrollView
+    <KeyboardAwareScrollView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      contentContainerStyle={styles.scrollContent}
+      bounces={false}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      // 3. This tells the view how much extra space to put between the keyboard and the input
+      extraScrollHeight={20}
+      enableOnAndroid={true}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
-          {/* Logo Placeholder */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoPlaceholder}>
-              <Image 
-                source={imagePlaceholder} 
-                style={{ width: 130, height: 130 }} // Adjust to your needs
-              />
-              {/* <AntDesign name="car" size={32} color="#0EA5E9" />
-              <Text style={styles.logoText}>AutoHub</Text> */}
-            </View>
+      <View style={{ flex: 1, minHeight: 20 }} />
+      
+      <Surface style={styles.card} elevation={Platform.OS === 'android' ? 2 : 0}>
+        
+        {/* Logo Placeholder */}
+        <View style={styles.logoContainer}>
+          <View style={styles.logoPlaceholder}>
+            <Image 
+              source={imagePlaceholder} 
+              style={{ width: 130, height: 130 }} 
+            />
           </View>
+        </View>
 
-          {/* Headers */}
-          <Text style={styles.title}>Welcome to AutoHub</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+        {/* Headers */}
+        <Text variant="headlineSmall" style={styles.title}>Welcome to AutoHub</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>Sign in to continue</Text>
 
-          {/* Google Sign In Button */}
-          <TouchableOpacity style={styles.googleButton} onPress={onGoogleSignIn}>
+        {/* Google Sign In Button */}
+        <Button
+          mode="outlined"
+          onPress={onGoogleSignIn}
+          style={styles.googleButton}
+          contentStyle={styles.buttonContent}
+          labelStyle={styles.googleButtonText}
+          icon={() => (
             <Image 
               source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png' }} 
               style={{ width: 20, height: 20 }} 
             />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
+          )}
+        >
+          Continue with Google
+        </Button>
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Form */}
-          <View style={styles.formContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <View style={styles.inputWrapper}>
-              <Feather name="mail" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="you@example.com"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.inputWrapper}>
-              <Feather name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
-              <Text style={styles.signInButtonText}>Sign in</Text>
-            </TouchableOpacity>
-          </View>
-        
-
-          {/* Footer Links */}
-          <View style={styles.footer}>
-            <TouchableOpacity onPress={onForgotPassword}>
-              <Text style={styles.footerLink}>Forgot password?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onSignUpNavigation}>
-              <Text style={styles.footerText}>
-                Need an account? <Link href = {"/sign-up"}style={styles.footerLinkBold}>Sign up</Link>
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {/* Divider */}
+        <View style={styles.dividerContainer}>
+          <View style={styles.dividerLine} />
+          <Text variant="labelSmall" style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        {/* Form */}
+        <View style={styles.formContainer}>
+          <Text variant="titleSmall" style={styles.inputLabel}>Email</Text>
+          <TextInput
+            {...emailInputProps}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            left={<TextInput.Icon icon={() => <Feather name="mail" size={20} color={theme.colors.text.placeholder} />} />}
+          />
+          <HelperText type="error" visible={!!emailError}>
+            {emailError}
+          </HelperText>
+          <Text variant="titleSmall" style={styles.inputLabel}>Password</Text>
+          <TextInput
+            {...passwordInputProps}
+            placeholder="••••••••" 
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            left={<TextInput.Icon icon={() => <Feather name="lock" size={20} color={theme.colors.text.placeholder} />} />}
+          />
+
+          <Button
+            mode="contained"
+            onPress={handleSignIn}
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.primaryText}
+            style={styles.signInButton}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.signInButtonText}
+          >
+            Sign in
+          </Button>
+          {error && (
+            <ErrorMessage message={error} />
+          )}
+        </View>
+
+        {/* Footer Links */}
+    <View style={[
+      styles.footer, 
+      isSmallScreen && styles.footerStacked // Apply vertical layout if small
+    ]}>
+      <TouchableOpacity onPress={onForgotPassword}>
+        <Text variant="bodyMedium" style={styles.footerLink}>Forgot password?</Text>
+      </TouchableOpacity>
+      
+        <Link href={"/sign-up"} asChild>
+          <TouchableOpacity>
+            <Text variant="bodyMedium" style={styles.footerText}>
+              Need an account? <Text style={styles.footerLinkBold}>Sign up</Text>
+            </Text>
+          </TouchableOpacity>
+        </Link>
+    </View>
+      </Surface>
+      
+      <View style={{ flex: 1, minHeight: 20 }} />
+    </KeyboardAwareScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6', // Light gray background to match the image
-    width:'100%'
+    backgroundColor: theme.colors.background,
+    width: '100%'
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.md,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     width: '100%',
-    maxWidth: 500, // Constrains width on Web/Tablets for a clean card look
-    borderRadius: 16,
-    padding: 32,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.25)',
-      },
-    }),
+    maxWidth: 500,
+    borderRadius: theme.borderRadius.card,
+    padding: theme.spacing.xl,
+    ...theme.shadows.card,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   logoPlaceholder: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F0F9FF',
+    borderRadius: theme.borderRadius.round,
+    backgroundColor: theme.colors.logo.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0F2FE',
-  },
-  logoText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0369A1',
-    marginTop: 4,
+    borderColor: theme.colors.logo.border,
   },
   title: {
-    fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: theme.colors.text.main,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: theme.spacing.xs,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#6B7280',
+    color: theme.colors.text.muted,
     textAlign: 'center',
     marginBottom: 28,
   },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginBottom: 24,
-    gap: 15
+  buttonContent: {
+    height: 48,
   },
-  googleIcon: {
-    marginRight: 12,
+  googleButton: {
+    borderColor: theme.colors.border.light,
+    borderRadius: theme.borderRadius.button,
+    marginBottom: theme.spacing.lg,
   },
   googleButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.colors.text.secondary,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.colors.border.light,
   },
   dividerText: {
-    marginHorizontal: 16,
-    color: '#9CA3AF',
-    fontSize: 12,
+    marginHorizontal: theme.spacing.sm,
+    color: theme.colors.text.placeholder,
     fontWeight: '600',
   },
   formContainer: {
     width: '100%',
   },
   inputLabel: {
-    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.colors.text.secondary,
     marginBottom: 6,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 48,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
   input: {
-    flex: 1,
-    height: '100%',
+    marginBottom: theme.spacing.sm,
     fontSize: 15,
-    color: '#111827',
-    outlineStyle: 'none', // Prevents default web focus ring
-  } as any, // Cast to any to suppress TS error for web-only outlineStyle
-  signInButton: {
-    backgroundColor: '#0F172A', // Dark navy/black from the image
-    borderRadius: 8,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 24,
+  },
+  signInButton: {
+    borderRadius: theme.borderRadius.button,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.lg
   },
   signInButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -277,18 +286,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+  },
+  footerStacked: {
+    flexDirection: 'column', 
+    alignItems: 'center',   
+    justifyContent: 'center',
+    gap: 0,                
   },
   footerText: {
-    color: '#6B7280',
-    fontSize: 13,
+    color: theme.colors.text.muted,
+    textAlign: 'center',     
   },
   footerLink: {
-    color: '#4B5563',
-    fontSize: 13,
+    color: theme.colors.text.link,
     fontWeight: '600',
   },
   footerLinkBold: {
-    color: '#111827',
+    color: theme.colors.text.main,
     fontWeight: '700',
   },
 });

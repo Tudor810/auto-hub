@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:frontend": "npm run start --workspace=auto-hub",
+    "dev:frontend": "npm run start --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
     "install:all": "npm install"
   },

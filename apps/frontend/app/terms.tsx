@@ -1,7 +1,7 @@
 import SignUpScreen from "@/components/SignUpScreen";
 import { Text, View } from "react-native";
 
-export default function SignUp() {
+export default function TermsOfService() {
   return (
     <View
       style={{
@@ -10,7 +10,7 @@ export default function SignUp() {
         alignItems: "center",
       }}
     >
-      <SignUpScreen />
+      <Text>Terms of Service</Text>
     </View>
   );
 }

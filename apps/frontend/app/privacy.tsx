@@ -1,7 +1,7 @@
 import SignUpScreen from "@/components/SignUpScreen";
 import { Text, View } from "react-native";
 
-export default function SignUp() {
+export default function PrivacyPolicy() {
   return (
     <View
       style={{
@@ -10,7 +10,7 @@ export default function SignUp() {
         alignItems: "center",
       }}
     >
-      <SignUpScreen />
+      <Text>Privacy Policy</Text>
     </View>
   );
 }
