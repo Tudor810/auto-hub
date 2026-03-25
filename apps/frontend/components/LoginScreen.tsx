@@ -38,15 +38,51 @@ export default function LoginScreen({
   const [emailError, setEmailError] = useState('');
 
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
+  const [signInPressed, setSignInPressed] = useState(false)
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+
+    if(signInPressed === false)
+      return;
+    
+    if (text.trim() === '') {
+      setEmailError('Please enter your email address.');
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(text)) {
+        setEmailError('Please enter a valid email address.');
+      } else {
+        setEmailError('');
+      }
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+
+    if(signInPressed === false)
+      return;
+    
+    if (text.trim() === '') {
+      setPasswordError('Please enter your password.');
+    } else if (text.length < 8) {
+      setPasswordError('Password must be at least 8 characters long.');
+    } else {
+      setPasswordError('');
+    }
+  };
 
   const handleSignIn = () => {
     if (onSignIn) {
+      setSignInPressed(true);
       onSignIn(email, password);
     }
   };
 
-  onSignIn = (email: string, password: string) => {
+  onSignIn = async (email: string, password: string) => {
     console.log('Signing in with:', email, password);
 
     if(email.trim() === '') {
@@ -54,17 +90,43 @@ export default function LoginScreen({
       return;
     } 
 
-    if(email.trim() === '' || password.trim() === '') {
-      setError('Please enter both email and password.');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address.');
       return;
     }
 
+    if(password.trim() === '') {
+      setPasswordError('Please enter your password.');
+      return;
+    }
+
+    if(password.length < 8) {
+      setPasswordError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    try {
+      const data = await fetch("http://192.168.0.110:5000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+    } catch (err) {
+      console.error('Sign-in error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    }
+
     setEmailError('');
+    setPasswordError('');
     setError(''); // Clear previous errors
 
   }
   const emailInputProps = useInputProps(undefined, !!emailError);
-  const passwordInputProps = useInputProps(undefined, !!error);
+  const passwordInputProps = useInputProps(undefined, !!passwordError);
   const theme = useTheme<any>();
   const styles = makeStyles(theme);
   const imagePlaceholder = require("../assets/images/logo_dark.png");
@@ -132,7 +194,7 @@ export default function LoginScreen({
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={handleEmailChange}
             left={<TextInput.Icon icon={() => <Feather name="mail" size={20} color={theme.colors.text.placeholder} />} />}
           />
           <HelperText type="error" visible={!!emailError}>
@@ -144,9 +206,12 @@ export default function LoginScreen({
             placeholder="••••••••" 
             secureTextEntry
             value={password}
-            onChangeText={setPassword}
+            onChangeText={handlePasswordChange}
             left={<TextInput.Icon icon={() => <Feather name="lock" size={20} color={theme.colors.text.placeholder} />} />}
           />
+          <HelperText type="error" visible={!!passwordError}>
+            {passwordError}
+          </HelperText>
 
           <Button
             mode="contained"
