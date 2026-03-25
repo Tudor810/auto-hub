@@ -1,0 +1,16 @@
+{
+  "name": "auto-hub",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run start --workspace=auto-hub",
+    "dev:backend": "npm run dev --workspace=backend",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
