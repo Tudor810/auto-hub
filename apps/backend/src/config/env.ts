@@ -5,15 +5,14 @@ interface EnvConfig {
     nodeEnv : string;
     port: number;
     mongoUri: string;
-    jwtSecret: string;
-
+    jwtToken: string;
 }
 
 export const env : EnvConfig = {
   port: Number(process.env.PORT) || 5000,
   mongoUri: process.env.MONGO_URI || '',
-  jwtSecret: process.env.JWT_SECRET || 'super_secret_key_for_autohub',
   nodeEnv: process.env.NODE_ENV || 'development',
+  jwtToken: process.env.JWT_TOKEN || 'super_secret_jwt_token_for_autohub'
 };
 
 // Safety check: Ensure essential variables exist

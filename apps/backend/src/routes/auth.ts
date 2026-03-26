@@ -40,8 +40,7 @@ router.post('/signup', async (req, res) => {
     // We only put non-sensitive data in the token payload!
     const tokenPayload = { userId: newUser._id, role: newUser.role };
     
-    // Ensure you have a JWT_SECRET in your .env file!
-    const token = jwt.sign(tokenPayload, env.jwtSecret || 'super_secret_fallback', {
+    const token = jwt.sign(tokenPayload, env.jwtToken || 'super_secret_fallback', {
       expiresIn: '7d' // Token expires in 7 days
     });
 
