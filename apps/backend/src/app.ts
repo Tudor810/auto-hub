@@ -10,7 +10,7 @@ import { env } from './config/env.js';
 import { corsOptions } from './config/cors.js';
 import connectDB from './config/db.js';
 
-import loginRouter from './routes/login.js';
+import routes from './routes/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,7 +26,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/login', loginRouter);
+
+app.use('/api', routes);
 
 app.get('/ping', (req, res) => res.send('AutoHub Backend is Online! 🚗'));
 
@@ -34,7 +35,7 @@ const PORT = env.port || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 AutoHub Server Live`);
-  console.log(`🌍 Mode: ${env.nodeEnv}`);
-  console.log(`📍 Port: ${env.port}`);
+  console.log(`Mode: ${env.nodeEnv}`);
+  console.log(`Port: ${env.port}`);
 });
 

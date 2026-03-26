@@ -125,6 +125,7 @@ export default function LoginScreen({
     setError(''); // Clear previous errors
 
   }
+  
   const emailInputProps = useInputProps(undefined, !!emailError);
   const passwordInputProps = useInputProps(undefined, !!passwordError);
   const theme = useTheme<any>();
