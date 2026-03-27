@@ -1,8 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-
 import {
   Platform,
   StyleSheet,
@@ -10,26 +9,21 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+
 import { Button, HelperText, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import ErrorMessage from './ErrorMessage';
+
 import { useInputProps } from '@/hooks/useInputProps';
-
-interface LoginScreenProps {
-  onSignIn?: (email: string, pass: string) => void;
-  onGoogleSignIn?: () => void;
-  onSignUpNavigation?: () => void;
-  onForgotPassword?: () => void;
-}
+import { IAuthSuccessResponse, ILoginRequest } from '@auto-hub/shared/types/user';
+import { useAuth } from '@/context/AuthContext';
+import GoogleSignInButton from './GoogleSignInButton';
+import ErrorMessage from '../ErrorMessage';
 
 
+export default function LoginScreen() {
 
-
-export default function LoginScreen({
-  onSignIn,
-  onGoogleSignIn,
-  onForgotPassword,
-}: LoginScreenProps) {
+  const { login } = useAuth();
+  const router = useRouter();
 
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 450;
@@ -41,80 +35,64 @@ export default function LoginScreen({
   const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
   const [signInPressed, setSignInPressed] = useState(false)
+  const [seePassword, setSeePassword] = useState(false);
 
-  const handleEmailChange = (text: string) => {
+  const validateEmail = (email: string) => {
+    if (!email.trim()) return 'Please enter your email address.';
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Please enter a valid email address.';
+  };
+  const validatePassword = (pass: string) => {
+    if (!pass.trim()) return 'Please enter your password.';
+    return pass.length < 8 ? 'Password must be at least 8 characters long.' : '';
+  };
+
+   const handleEmailChange = (text: string) => {
     setEmail(text);
-
-    if(signInPressed === false)
-      return;
-    
-    if (text.trim() === '') {
-      setEmailError('Please enter your email address.');
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(text)) {
-        setEmailError('Please enter a valid email address.');
-      } else {
-        setEmailError('');
-      }
-    }
+    if (signInPressed) setEmailError(validateEmail(text));
   };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
+    if (signInPressed) setPasswordError(validatePassword(text));
+  }
+  
 
-    if(signInPressed === false)
-      return;
-    
-    if (text.trim() === '') {
-      setPasswordError('Please enter your password.');
-    } else if (text.length < 8) {
-      setPasswordError('Password must be at least 8 characters long.');
-    } else {
-      setPasswordError('');
-    }
-  };
+  const handleSignIn = async () => {
 
-  const handleSignIn = () => {
-    if (onSignIn) {
-      setSignInPressed(true);
-      onSignIn(email, password);
-    }
-  };
+    setSignInPressed(true);
+    setError('');
 
-  onSignIn = async (email: string, password: string) => {
-    console.log('Signing in with:', email, password);
+    const emailErr = validateEmail(email);
+    const passErr = validatePassword(password);
 
-    if(email.trim() === '') {
-      setEmailError('Please enter your email address.');
-      return;
-    } 
+    setEmailError(emailErr);
+    setPasswordError(passErr);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address.');
-      return;
-    }
-
-    if(password.trim() === '') {
-      setPasswordError('Please enter your password.');
-      return;
-    }
-
-    if(password.length < 8) {
-      setPasswordError('Password must be at least 8 characters long.');
+    if (emailErr || passErr) {
       return;
     }
 
     try {
-      const data = await fetch("http://192.168.0.110:5000/login", {
+
+      const payload : ILoginRequest = { email, password };
+
+      const data = await fetch("http://192.168.0.110:5000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ email, password })
+        credentials: "include",
+        body: JSON.stringify(payload)
       });
 
+      const responseData : IAuthSuccessResponse = await data.json();
+
+      if(data.ok) {
+        await login(responseData.user, responseData.token); // Save to context and storage
+        router.replace('/'); 
+      } else {
+        setError(responseData.message || 'Login failed. Please try again.');
+      }
     } catch (err) {
       console.error('Sign-in error:', err);
       setError('An unexpected error occurred. Please try again.');
@@ -124,14 +102,15 @@ export default function LoginScreen({
     setPasswordError('');
     setError(''); // Clear previous errors
 
-  }
-  
+  };
+
+
   const emailInputProps = useInputProps(undefined, !!emailError);
   const passwordInputProps = useInputProps(undefined, !!passwordError);
   const theme = useTheme<any>();
   const styles = makeStyles(theme);
-  const imagePlaceholder = require("../assets/images/logo_dark.png");
-
+  const logoLight = require("../../assets/images/logo_light.png");
+  const logoDark = require("../../assets/images/logo_dark.png");
   return (
     // 2. Replace KeyboardAvoidingView & ScrollView with KeyboardAwareScrollView
     <KeyboardAwareScrollView
@@ -152,7 +131,7 @@ export default function LoginScreen({
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
             <Image 
-              source={imagePlaceholder} 
+              source={theme.theme === 'dark' ? logoDark : logoLight} 
               style={{ width: 130, height: 130 }} 
             />
           </View>
@@ -163,21 +142,7 @@ export default function LoginScreen({
         <Text variant="bodyMedium" style={styles.subtitle}>Sign in to continue</Text>
 
         {/* Google Sign In Button */}
-        <Button
-          mode="outlined"
-          onPress={onGoogleSignIn}
-          style={styles.googleButton}
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.googleButtonText}
-          icon={() => (
-            <Image 
-              source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png' }} 
-              style={{ width: 20, height: 20 }} 
-            />
-          )}
-        >
-          Continue with Google
-        </Button>
+        <GoogleSignInButton setError={(message) => setError(message)}/>
 
         {/* Divider */}
         <View style={styles.dividerContainer}>
@@ -205,10 +170,11 @@ export default function LoginScreen({
           <TextInput
             {...passwordInputProps}
             placeholder="••••••••" 
-            secureTextEntry
+            secureTextEntry={!seePassword}
             value={password}
             onChangeText={handlePasswordChange}
             left={<TextInput.Icon icon={() => <Feather name="lock" size={20} color={theme.colors.text.placeholder} />} />}
+             right={<TextInput.Icon onPress = {() => setSeePassword(!seePassword)} icon={() => <Feather name = {seePassword ? "eye" : "eye-off"} size = {20} color={theme.colors.text.placeholder} />} />} 
           />
           <HelperText type="error" visible={!!passwordError}>
             {passwordError}
@@ -235,7 +201,7 @@ export default function LoginScreen({
       styles.footer, 
       isSmallScreen && styles.footerStacked // Apply vertical layout if small
     ]}>
-      <TouchableOpacity onPress={onForgotPassword}>
+      <TouchableOpacity >
         <Text variant="bodyMedium" style={styles.footerLink}>Forgot password?</Text>
       </TouchableOpacity>
       
@@ -300,16 +266,6 @@ const makeStyles = (theme: any) => StyleSheet.create({
   },
   buttonContent: {
     height: 48,
-  },
-  googleButton: {
-    borderColor: theme.colors.border.light,
-    borderRadius: theme.borderRadius.button,
-    marginBottom: theme.spacing.lg,
-  },
-  googleButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.text.secondary,
   },
   dividerContainer: {
     flexDirection: 'row',

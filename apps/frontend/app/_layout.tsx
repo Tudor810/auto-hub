@@ -1,8 +1,10 @@
 import { Stack } from "expo-router";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
-import {lightTheme} from "../utils";
-import {darkTheme} from "../utils";
-import { useColorScheme } from "react-native";
+import {lightTheme} from "../utils/themes";
+import {darkTheme} from "../utils/themes";
+import { Platform, useColorScheme } from "react-native";
+import { AuthProvider } from "@/context/AuthContext";
+import {GoogleOAuthProvider} from '@react-oauth/google';
 
 export default function RootLayout() {
 
@@ -11,6 +13,7 @@ export default function RootLayout() {
   const MD3ActiveTheme = colorScheme === 'dark' ? MD3DarkTheme: MD3LightTheme;
 
   const combineTheme = {
+    theme: colorScheme, 
     ...MD3ActiveTheme,
     ...activeTheme,
     colors: {
@@ -19,14 +22,23 @@ export default function RootLayout() {
     },
   }
 
+  if(Platform.OS === 'web') {
+    return (
+        <GoogleOAuthProvider clientId="64399865931-uv8ni2g23vbn427o2v6io528qkg67ovt.apps.googleusercontent.com">
+          <PaperProvider theme={combineTheme}>
+            <AuthProvider>
+              <Stack screenOptions={{headerShown: false}}/>  
+              
+            </AuthProvider>
+          </PaperProvider>
+        </GoogleOAuthProvider>
+    )
+  }
+
   return <PaperProvider theme={combineTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{
-          headerShown: false
-        }}/>
-        <Stack.Screen name="sign-up" options={{
-          headerShown: false
-        }}/>
-      </Stack>
+          <AuthProvider>
+            <Stack screenOptions={{headerShown: false}}/>  
+            
+          </AuthProvider>
   </PaperProvider>
 }

@@ -11,21 +11,15 @@ import {
 import { Button, HelperText, Menu, Surface, Text, TextInput } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useTheme } from 'react-native-paper';
+import { useAuth } from '@/context/AuthContext';
 import { useInputProps } from '@/hooks/useInputProps';
-import ErrorMessage from './ErrorMessage';
-import { ISignUpRequest } from '@auto-hub/shared/types/user';
+import ErrorMessage from '../ErrorMessage';
+import { IAuthSuccessResponse, ISignUpRequest} from '@auto-hub/shared/types/user';
 
-
-interface SignUpScreenProps {
-  onGoBack?: () => void;
-  onSignUpSuccess?: (userData: any) => void;
-}
-
-
-
-export default function SignUpScreen({ onGoBack, onSignUpSuccess }: SignUpScreenProps) {
+export default function SignUpScreen() {
   const router = useRouter();
-  
+  const { login } = useAuth();
+
   // -- Form State --
   const [role, setRole] = useState<'customer' | 'provider' | null>(null);
   const [fullName, setFullName] = useState('');
@@ -81,7 +75,7 @@ export default function SignUpScreen({ onGoBack, onSignUpSuccess }: SignUpScreen
     handleSignUpAsync(role, fullName, phoneNumber, email, password, confirmPassword, terms);
   };
 
-const handleNameChange = (text: string) => {  
+  const handleNameChange = (text: string) => {  
     setFullName(text);
     if (signUpPressed) setFullNameError(validateFullName(text));
   };
@@ -146,23 +140,17 @@ const handleNameChange = (text: string) => {
         headers: {
           "Content-Type": "application/json"
         },
+        credentials: "include",
         body: JSON.stringify(paylod)
       });
 
+      const responseData : IAuthSuccessResponse = await data.json();
+
       if (data.ok) {
-        // Success, call the prop
-        if (onSignUpSuccess) {
-          const userData = {
-            role,
-            fullName,
-            phoneNumber,
-            email,
-            password,
-          };
-          onSignUpSuccess(userData);
-        }
+        await login(responseData.user, responseData.token); // Save to context and storage
+        router.replace('/');
       } else {
-        setError('Sign up failed. Please try again.');
+        setError(responseData.message || 'Sign up failed. Please try again.');
       }
     } catch (err) {
       console.error('Sign-up error:', err);
