@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useBusiness } from '@/context/BusinessContext';
 import { useLocalSearchParams } from 'expo-router';
 import { ILocation } from '@auto-hub/shared/types/locationTypes';
+import { useServices } from '@/hooks/useServices';
 
 export default function DashboardScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
   const { locations } = useBusiness();
+
 
   const { id } = useLocalSearchParams();
 
@@ -19,11 +21,23 @@ export default function DashboardScreen() {
     if (locations.length > 0) return locations[0]._id;
     return null;
   });
+
+
+  const { services, refreshServices } = useServices(activeLocationId);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (activeLocationId) {
+        refreshServices();
+      }
+    }, [activeLocationId, refreshServices])
+  );
+
   // Responsive Logic
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
-  const maxWidth = isDesktop ? 800 : '100%';  
-  const selectedLocation : ILocation = locations.find(loc => loc._id === activeLocationId) || null;
+  const maxWidth = isDesktop ? 800 : '100%';
+  const selectedLocation: ILocation = locations.find(loc => loc._id === activeLocationId) || null;
 
   return (
     <ScrollView
@@ -188,7 +202,7 @@ export default function DashboardScreen() {
 
             <View style={[styles.servicesCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border.light }]}>
               <View>
-                <Text style={[styles.servicesCount, { color: theme.colors.text.main }]}>3</Text>
+                <Text style={[styles.servicesCount, { color: theme.colors.text.main }]}>{services.length}</Text>
                 <Text style={[styles.servicesLabel, { color: theme.colors.text.muted }]}>servicii active</Text>
               </View>
               <TouchableOpacity

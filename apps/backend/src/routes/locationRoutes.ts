@@ -10,4 +10,4 @@ router.post("/", authenticateToken, createLocation);
 
 router.put("/:id", authenticateToken, editLocation);
 
-export default router;
+export default router

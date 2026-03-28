@@ -5,6 +5,7 @@ import { Router } from 'express';
 import authRouter from './authRoutes.js';
 import companyRouter from './companyRoutes.js'
 import locationRouter from './locationRoutes.js'
+import serviceRouter from './serviceRoutes.js'
 
 // import userRouter from './user.js';
 // import carRouter from './car.js';
@@ -15,6 +16,7 @@ const router = Router();
 router.use('/auth', authRouter);
 router.use('/companies', companyRouter);
 router.use('/locations', locationRouter);
+router.use('/services', serviceRouter);
 
 // Export this bundled master router
 export default router;
