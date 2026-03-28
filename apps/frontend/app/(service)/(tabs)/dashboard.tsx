@@ -3,32 +3,35 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWind
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useBusiness } from '@/context/BusinessContext';
+import { useLocalSearchParams } from 'expo-router';
+import { ILocation } from '@auto-hub/shared/types/locationTypes';
 
 export default function DashboardScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
-  
+  const { locations } = useBusiness();
+
+  const { id } = useLocalSearchParams();
+
+  const [activeLocationId, setActiveLocationId] = useState<string | null>(() => {
+    if (id) return id;
+    if (locations.length > 0) return locations[0]._id;
+    return null;
+  });
   // Responsive Logic
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
-  const maxWidth = isDesktop ? 800 : '100%';
-
-  // Mock Data
-  const locations = [
-    { id: 'loc1', name: 'Service Centru' },
-    { id: 'loc2', name: 'Vulcanizare Nord' },
-  ];
-  
-  const [activeLocationId, setActiveLocationId] = useState(locations[0].id);
-  const activeLocationName = locations.find(loc => loc.id === activeLocationId)?.name;
+  const maxWidth = isDesktop ? 800 : '100%';  
+  const selectedLocation : ILocation = locations.find(loc => loc._id === activeLocationId) || null;
 
   return (
-    <ScrollView 
+    <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.mainContainer}>
-        
+
         {/* EXTENDED SURFACE CONTAINER (For Desktop) */}
         <View style={[
           styles.contentWrapper,
@@ -44,11 +47,11 @@ export default function DashboardScreen() {
 
           {/* 1. DARK HEADER SECTION (Refined for True Dark Mode) */}
           <View style={[
-            styles.darkHeader, 
+            styles.darkHeader,
             { backgroundColor: theme.colors.surface },
             isDesktop && { paddingTop: 40 }
           ]}>
-            
+
             {/* Title Row */}
             <View style={styles.headerTopRow}>
               <View>
@@ -72,13 +75,13 @@ export default function DashboardScreen() {
                       activeOpacity={0.7}
                       style={[
                         styles.tab,
-                        isActive 
-                          ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary } 
+                        isActive
+                          ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
                           : { backgroundColor: theme.colors.background, borderColor: theme.colors.border.medium }
                       ]}
                     >
                       <Text style={[
-                        styles.tabText, 
+                        styles.tabText,
                         { color: isActive ? '#FFFFFF' : theme.colors.text.secondary, fontWeight: isActive ? '700' : '500' }
                       ]}>
                         {loc.name}
@@ -91,7 +94,7 @@ export default function DashboardScreen() {
 
             {/* THE 4 STAT CARDS */}
             <View style={styles.statsGrid}>
-              
+
               <View style={[styles.statBox, { backgroundColor: theme.colors.background }]}>
                 <View style={styles.statHeader}>
                   <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
@@ -127,13 +130,13 @@ export default function DashboardScreen() {
               </View>
 
             </View>
-          </View> 
+          </View>
           {/* END DARK HEADER */}
 
 
           {/* 2. MAIN CONTENT */}
           <View style={[styles.contentArea, isDesktop && { paddingHorizontal: 32 }]}>
-            
+
             {/* QUICK ACTIONS */}
             <View style={styles.quickActionsRow}>
               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(service)/(tabs)/calendar')}>
@@ -142,14 +145,14 @@ export default function DashboardScreen() {
                 </View>
                 <Text style={[styles.actionText, { color: theme.colors.text.main }]}>Calendar</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(service)/(tabs)/services')}>
                 <View style={[styles.actionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                   <Ionicons name="briefcase" size={24} color="#10B981" />
                 </View>
                 <Text style={[styles.actionText, { color: theme.colors.text.main }]}>Servicii</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(service)/(tabs)/profile')}>
                 <View style={[styles.actionIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.1)' }]}>
                   <Ionicons name="person" size={24} color="#A855F7" />
@@ -171,7 +174,7 @@ export default function DashboardScreen() {
                 <Ionicons name="calendar-outline" size={32} color={theme.colors.text.placeholder} />
               </View>
               <Text style={[styles.emptyStateText, { color: theme.colors.text.muted }]}>
-                Nicio programare pentru azi la {activeLocationName}
+                Nicio programare pentru azi la {selectedLocation.name}
               </Text>
             </View>
 
@@ -179,7 +182,7 @@ export default function DashboardScreen() {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.colors.text.main }]}>Serviciile tale</Text>
               <TouchableOpacity onPress={() => router.push('/(service)/(tabs)/services')}>
-                 <Text style={[styles.sectionLink, { color: theme.colors.primary }]}>Gestionează {'>'}</Text>
+                <Text style={[styles.sectionLink, { color: theme.colors.primary }]}>Gestionează {'>'}</Text>
               </TouchableOpacity>
             </View>
 
@@ -188,7 +191,7 @@ export default function DashboardScreen() {
                 <Text style={[styles.servicesCount, { color: theme.colors.text.main }]}>3</Text>
                 <Text style={[styles.servicesLabel, { color: theme.colors.text.muted }]}>servicii active</Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.addServiceBtn, { backgroundColor: theme.colors.primary }]}
                 onPress={() => router.push('/(service)/(tabs)/services')}
               >
@@ -196,7 +199,7 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
 
-          </View> 
+          </View>
           {/* END MAIN CONTENT */}
 
         </View>
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
   /* 4 STATS GRID */
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   statBox: {
-    width: '48%', 
+    width: '48%',
     borderRadius: 16,
     padding: 16,
   },
@@ -252,13 +255,13 @@ const styles = StyleSheet.create({
     marginTop: -40, // Pulls the buttons slightly up to overlap the top header
   },
   actionBtn: { alignItems: 'center', width: '30%' },
-  actionIconBox: { 
-    width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8, 
-    ...Platform.select({ 
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }, 
-      android: { elevation: 2 }, 
-      web: { boxShadow: '0px 4px 10px rgba(0,0,0,0.05)' } as any 
-    }) 
+  actionIconBox: {
+    width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
+      android: { elevation: 2 },
+      web: { boxShadow: '0px 4px 10px rgba(0,0,0,0.05)' } as any
+    })
   },
   actionText: { fontSize: 13, fontWeight: '600' },
 

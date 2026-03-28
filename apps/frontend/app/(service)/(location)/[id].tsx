@@ -3,22 +3,30 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWind
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { ILocation } from '@auto-hub/shared/types/locationTypes';
+import { useBusiness } from '@/context/BusinessContext';
 
-export default function LocationDetailsScreen() {
+export default function LocationDetailsScreen({ }) {
     const theme = useTheme<any>();
     const { width } = useWindowDimensions();
-    const { id, origin} = useLocalSearchParams();
+    const { id, origin } = useLocalSearchParams();
+
+    const { locations, company } = useBusiness();
+
+    const location: ILocation = locations.find(loc => loc._id === id);
 
     const isWeb = Platform.OS === 'web';
     const isDesktop = isWeb && width >= 800;
     const maxWidth = isDesktop ? 800 : '100%';
 
-    const location = {
-        name: 'Vulcanizare Nord',
-        address: 'Bd. Nordului 10, Cluj-Napoca',
-        phone: '0755 111 222',
-        status: 'active',
-    };
+    const dayMap = ['duminica', 'luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata'];
+    const todayKey = dayMap[new Date().getDay()];
+    const todaysSchedule = location.schedule?.[todayKey];
+
+    // Format the display string
+    const scheduleText = todaysSchedule?.isOpen
+        ? `Astăzi: ${todaysSchedule.open} - ${todaysSchedule.close}`
+        : 'Astăzi: Închis';
 
     return (
         // 1. Am adăugat contentContainerStyle={{ flexGrow: 1 }}
@@ -47,44 +55,87 @@ export default function LocationDetailsScreen() {
 
                     {/* CARD 1: INFORMAȚII */}
                     <View style={[styles.card, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface }]}>
+
                         <View style={styles.cardHeader}>
                             <Text style={[styles.cardTitle, { color: theme.colors.text.main }]}>Informații Publice</Text>
                             <TouchableOpacity
-                                style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center'
-                                }}>
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                                onPress={() => {
+                                    router.push({
+                                        pathname: '/(service)/add-location',
+                                        params : {id: location._id, origin: 'location'}
+                                    });
+                                }}
+                            >
                                 <Ionicons name="create-outline" size={16} color={theme.colors.primary} style={{ marginRight: 4 }} />
                                 <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>Editează</Text>
                             </TouchableOpacity>
                         </View>
 
+                        {/* ADDRESS */}
                         <View style={styles.infoRow}>
                             <Ionicons name="location-outline" size={20} color={theme.colors.text.muted} />
-                            <Text style={[styles.infoText, { color: theme.colors.text.main }]}>{location.address}</Text>
-                        </View>
-                        <View style={styles.infoRow}>
-                            <Ionicons name="call-outline" size={20} color={theme.colors.text.muted} />
-                            <Text style={[styles.infoText, { color: theme.colors.text.main }]}>{location.phone}</Text>
+                            <Text style={[styles.infoText, { color: theme.colors.text.main }]}>
+                                {location.address}
+                            </Text>
                         </View>
 
+                        {/* PHONE (From Company) */}
+                        {company?.phone && (
+                            <View style={styles.infoRow}>
+                                <Ionicons name="call-outline" size={20} color={theme.colors.text.muted} />
+                                <Text style={[styles.infoText, { color: theme.colors.text.main }]}>
+                                    {company.phone}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* TODAY'S SCHEDULE */}
                         <View style={styles.infoRow}>
                             <Ionicons name="time-outline" size={20} color={theme.colors.text.muted} />
-                            <Text style={[styles.infoText, { color: theme.colors.text.main }]}>Luni - Vineri: 08:00 - 18:00</Text>
+                            <Text style={[
+                                styles.infoText,
+                                { color: todaysSchedule?.isOpen ? theme.colors.text.main : theme.colors.error } // Red if closed
+                            ]}>
+                                {scheduleText}
+                            </Text>
                         </View>
-                    </View>
 
+                        {/* DESCRIPTION (Optional, so we check if it exists) */}
+                        {location.description ? (
+                            <View style={[styles.infoRow, { alignItems: 'flex-start', marginTop: 8 }]}>
+                                <Ionicons name="information-circle-outline" size={20} color={theme.colors.text.muted} style={{ marginTop: 2 }} />
+                                <Text style={[styles.infoText, { color: theme.colors.text.main, flex: 1, lineHeight: 20 }]}>
+                                    {location.description}
+                                </Text>
+                            </View>
+                        ) : null}
+
+                    </View>
                     {/* CARD 2: SCURTĂTURI */}
                     <Text style={[styles.sectionTitle, { color: theme.colors.text.main }]}>Acțiuni Rapide</Text>
                     <View style={styles.actionGrid}>
-                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface }]}>
+                        <TouchableOpacity
+                            onPress={() =>
+                                router.push({
+                                    pathname: "/(service)/(tabs)/calendar",
+                                    params: { id: location._id }
+                                })}
+                            style={[styles.actionBtn, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface }]}>
+
                             <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
                                 <Ionicons name="calendar" size={24} color="#3B82F6" />
                             </View>
                             <Text style={[styles.actionText, { color: theme.colors.text.main }]}>Calendar</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface }]}>
+                        <TouchableOpacity
+                            onPress={() =>
+                                router.push({
+                                    pathname: "/(service)/(tabs)/services",
+                                    params: { id: location._id }
+                                })}
+                            style={[styles.actionBtn, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface }]}>
                             <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                                 <Ionicons name="briefcase" size={24} color="#10B981" />
                             </View>

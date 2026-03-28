@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
-import { useTheme, TextInput } from 'react-native-paper';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { useTheme, TextInput, HelperText, Snackbar } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-
+import { router, useLocalSearchParams } from 'expo-router';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 // 🚨 Asigură-te că ruta către hook-ul tău este corectă
 import { useInputProps } from '../../hooks/useInputProps';
+import { ILocationFormData, ILocation } from '@auto-hub/shared/types/locationTypes';
+import ErrorMessage from '@/components/ErrorMessage';
+import { useBusiness } from '@/context/BusinessContext';
 
 // --- DATE CONSTANTE ---
 const SERVICE_CATEGORIES = [
@@ -21,6 +24,10 @@ const DAYS_OF_WEEK = [
 export default function AddLocationScreen() {
     const theme = useTheme<any>();
     const { width } = useWindowDimensions();
+    const { saveLocationData, locations } = useBusiness();
+    const { id, origin} = useLocalSearchParams();
+    const existingLocation: ILocation = locations.find(loc => loc._id === id);
+
     const defaultInputProps = useInputProps();
 
     const isWeb = Platform.OS === 'web';
@@ -34,58 +41,209 @@ export default function AddLocationScreen() {
     });
 
     const [timePicker, setTimePicker] = useState<{ visible: boolean, dayId: string, type: 'open' | 'close' } | null>(null);
+    const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
-    const handleTimeSelect = (selectedTime: string) => {
+    const handleTimeSelect = (time: string) => {
         if (!timePicker) return;
+
+        const { dayId, type } = timePicker;
+        setFormErrors(prev => ({
+            ...prev,
+            schedule: ""
+        }))
+        // 1. Create the potential new state for this day
+        const updatedDay = {
+            ...formData.schedule[dayId],
+            [type]: time
+        };
+
+        // 2. Immediate validation check
+        const openMin = timeToMinutes(type === 'open' ? time : updatedDay.open);
+        const closeMin = timeToMinutes(type === 'close' ? time : updatedDay.close);
+
+        if (type === 'close' && closeMin <= openMin) {
+            setSnackbar({
+                visible: true,
+                message: "Ora de închidere nu poate fi înainte sau egală cu ora de deschidere."
+            })
+            return; // Don't save it
+        }
+
+        if (type === 'open' && openMin >= closeMin) {
+            // setFormErrors(prev => ({
+            //     ...prev,
+            //     schedule: "Ora de deschidere nu poate fi după ora de închidere."
+            // }))
+            setSnackbar({
+                visible: true,
+                message: "Ora de deschidere nu poate fi după ora de închidere."
+            })
+            return; // Don't save it
+        }
+
+        // 3. If valid, save to state
         setFormData(prev => ({
             ...prev,
             schedule: {
                 ...prev.schedule,
-                [timePicker.dayId]: {
-                    ...prev.schedule[timePicker.dayId],
-                    [timePicker.type]: selectedTime
-                }
+                [dayId]: updatedDay
             }
         }));
-        setTimePicker(null); // Închidem modalul după selecție
+
+        setTimePicker(null);
     };
     // --- STAREA FORMULARULUI ---
     const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({
+    const defaultState: ILocationFormData = {
+        name: '',
+        address: '',
+        coordinates: { latitude: '', longitude: '' },
+        description: '',
+        services: [],
+        schedule: DAYS_OF_WEEK.reduce((acc, day) => {
+            acc[day.id] = { isOpen: day.id !== 'duminica', open: '08:00', close: '18:00' };
+            return acc;
+        }, {} as ILocationFormData['schedule'])
+    };
+
+    // 3. Initialize the state using a lazy function
+    const [formData, setFormData] = useState<ILocationFormData>(() => {
+        // If we found a location, map its data to the form state
+        if (existingLocation) {
+            return {
+                name: existingLocation.name || '',
+                address: existingLocation.address || '',
+                description: existingLocation.description || '',
+                services: existingLocation.services || [],
+                // Ensure coordinates are converted back to strings for the TextInputs
+                coordinates: {
+                    latitude: existingLocation.coordinates?.latitude ? String(existingLocation.coordinates.latitude) : '',
+                    longitude: existingLocation.coordinates?.longitude ? String(existingLocation.coordinates.longitude) : '',
+                },
+                // Fallback to default schedule if for some reason it's missing
+                schedule: existingLocation.schedule || defaultState.schedule
+            };
+        }
+
+        // Otherwise, we are creating a new location, so return the empty defaults
+        return defaultState;
+    });
+
+    const [formErrors, setFormErrors] = useState({
+        name: '',
         address: '',
         latitude: '',
         longitude: '',
         description: '',
-        services: [] as string[],
-        schedule: DAYS_OF_WEEK.reduce((acc, day) => {
-            acc[day.id] = { isOpen: day.id !== 'duminica', open: '08:00', close: '18:00' };
-            return acc;
-        }, {} as any)
+        services: '',
+        schedule: ''
     });
 
+    const validateName = (name: string) => !name.trim() ? 'Introduceți numele locației.' : '';
+    const validateAddress = (addr: string) => !addr.trim() ? 'Introduceți adresa completă.' : '';
+    const validateLatitude = (lat: string) => {
+        if (!lat.trim()) return 'Latitudinea este obligatorie.';
+        const num = parseFloat(lat.replace(',', '.'));
+        if (isNaN(num) || num < -90 || num > 90) return 'Latitudine invalidă (-90 la 90).';
+        return '';
+    };
+
+    const validateLongitude = (lng: string) => {
+        if (!lng.trim()) return 'Longitudinea este obligatorie.';
+        const num = parseFloat(lng.replace(',', '.'));
+        if (isNaN(num) || num < -180 || num > 180) return 'Longitudine invalidă (-180 la 180).';
+        return '';
+    };
+
+    const validateServices = (services: string[]) => services.length === 0 ? 'Selectați cel puțin un serviciu oferit.' : '';
+
+    const timeToMinutes = (time: string) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+
+    const [nextClicked, setNextClicked] = useState([false, false, false])
     // --- HANDLERS ---
     const handleNext = () => {
-        if (step < 3) setStep(step + 1);
+        if (step < 3) {
+
+            setNextClicked(prevState => prevState.map((clicked, index) =>
+                index === step - 1 ? true : clicked
+            ))
+
+            if (step === 1) {
+                const nameErr = validateName(formData.name);
+                const addressErr = validateAddress(formData.address);
+                const latitudeErr = validateLatitude(formData.coordinates.latitude);
+                const longitudeErr = validateLongitude(formData.coordinates.longitude);
+
+                setFormErrors(prevErrors => ({
+                    ...prevErrors,
+                    name: nameErr,
+                    address: addressErr,
+                    latitude: latitudeErr,
+                    longitude: longitudeErr
+                }));
+
+                if (nameErr || addressErr || latitudeErr || longitudeErr) {
+                    return;
+                }
+            } else if (step === 2) {
+                const serviceErr = validateServices(formData.services);
+
+                setFormErrors(prev => ({
+                    ...prev,
+                    services: serviceErr
+                }));
+
+                if (serviceErr)
+                    return;
+            }
+
+            setStep(step + 1);
+        }
         else {
-            console.log('Salvare Locație:', formData);
-            router.back(); // Sau router.replace către pagina locației create
+            if(existingLocation) {
+                saveLocationData(formData, 'PUT', id as string);
+            } else {
+                saveLocationData(formData, 'POST');
+            }
+            router.back();
         }
     };
 
     const handleBack = () => {
         if (step > 1) setStep(step - 1);
         else {
-            router.navigate("/(service)/profile");
-        }  
+            if(origin === 'location') {
+                router.push({
+                    pathname: "/(service)/(location)/[id]",
+                    params : {id: existingLocation._id}
+                });
+            } else 
+                router.navigate("/(service)/(tabs)/profile");
+        }
     };
 
     const toggleService = (service: string) => {
+
+        const isCurrentlySelected = formData.services.includes(service);
+        const updatedServices = isCurrentlySelected
+            ? formData.services.filter(s => s !== service)
+            : [...formData.services, service];
+
         setFormData(prev => ({
             ...prev,
-            services: prev.services.includes(service)
-                ? prev.services.filter(s => s !== service)
-                : [...prev.services, service]
+            services: updatedServices
         }));
+
+        if (nextClicked[1]) {
+            setFormErrors(prev => ({
+                ...prev,
+                services: validateServices(updatedServices)
+            }));
+        }
     };
 
     const toggleDayStatus = (dayId: string) => {
@@ -96,7 +254,13 @@ export default function AddLocationScreen() {
     };
 
     // --- RENDER PAȘI ---
-    // --- RENDER PAȘI ---
+
+    const nameInputProps = useInputProps(undefined, !!formErrors.name);
+    const addressInputProps = useInputProps(undefined, !!formErrors.address);
+    const latitudeInputProps = useInputProps(undefined, !!formErrors.latitude);
+    const longitudeInputProps = useInputProps(undefined, !!formErrors.longitude);
+
+
     const renderStep1 = () => (
         <View style={styles.stepContainer}>
 
@@ -108,52 +272,97 @@ export default function AddLocationScreen() {
                 <Text style={[styles.stepTitle, { color: theme.colors.text.main }]}>Locație & Descriere</Text>
             </View>
 
-            {/* 2. Input-urile stau acum la lățime completă (width: '100%'). FĂRĂ flex: 1 aici! */}
-            <TextInput
-                {...defaultInputProps}
-                style={[defaultInputProps.style, { width: '100%' }]}
-                label="Adresă completă *"
-                placeholder="Strada, Număr, Sector, Oraș"
-                value={formData.address}
-                onChangeText={(t) => setFormData({ ...formData, address: t })}
-            />
+            {/* 2. NOU: Wrapper pentru formular care aplică automat spațiere (gap) între toate elementele */}
+            <View style={{ width: '100%', gap: 0 }}>
 
-            {/* 3. Doar elementele dintr-un rând primesc flex: 1 pentru a împărți spațiul orizontal */}
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                <View style={styles.inputWrapper}>
+                    <TextInput
+                        {...nameInputProps}
+                        label="Nume locație *"
+                        placeholder="ex: Garajul AutoHUB, Service Pipera"
+                        value={formData.name}
+                        onChangeText={(t) => {
+                            setFormData({ ...formData, name: t });
+                            if (nextClicked[0]) setFormErrors(prev => ({ ...prev, name: validateName(t) }))
+                        }}
+                    />
+                    <HelperText type="error" visible={!!formErrors.name} style={styles.helperText}>{formErrors.name}</HelperText>
+                </View>
+                {/* Input Adresă */}
+                <View style={styles.inputWrapper}>
+                    <TextInput
+                        {...addressInputProps}
+                        label="Adresă completă *"
+                        placeholder="Strada, Număr, Sector, Oraș"
+                        value={formData.address}
+                        onChangeText={(t) => {
+                            setFormData({ ...formData, address: t });
+                            if (nextClicked[0]) setFormErrors(prev => ({ ...prev, address: validateAddress(t) }))
+                        }}
+                    />
+                    <HelperText type="error" visible={!!formErrors.address} style={styles.helperText}>{formErrors.address}</HelperText>
+                </View>
+                {/* Container pentru Coordonate + Link Google Maps */}
+                <TouchableOpacity style={{ alignSelf: 'flex-start', marginLeft: 8 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.primary, opacity: 0.8 }}>Găsește coordonatele pe Google Maps →</Text>
+                </TouchableOpacity>
+                <View style={{ width: '100%' }}>
+                    <View style={styles.rowContainer}>
+                        <View style={styles.flexHalf}>
+                            <TextInput
+                                {...latitudeInputProps}
+                                label="Latitudine"
+                                placeholder="ex: 44.4268"
+                                value={formData.coordinates.latitude}
+                                onChangeText={(t) => {
+                                    setFormData({
+                                        ...formData, coordinates: {
+                                            ...formData.coordinates,
+                                            latitude: t
+                                        }
+                                    })
+                                    if (nextClicked[0]) setFormErrors(prev => ({ ...prev, latitude: validateLatitude(t) }))
+                                }}
+                                keyboardType="numeric"
+                            />
+                            <HelperText type="error" visible={!!formErrors.latitude} style={styles.helperText}>{formErrors.latitude}</HelperText>
+                        </View>
+                        <View style={styles.flexHalf}>
+                            <TextInput
+                                {...longitudeInputProps}
+                                label="Longitudine"
+                                placeholder="ex: 26.1025"
+                                value={formData.coordinates.longitude}
+                                onChangeText={(t) => {
+                                    setFormData({
+                                        ...formData, coordinates: {
+                                            ...formData.coordinates,
+                                            longitude: t
+                                        }
+                                    })
+                                    if (nextClicked[0]) setFormErrors(prev => ({ ...prev, longitude: validateLongitude(t) }))
+                                }}
+                                keyboardType="numeric"
+                            />
+                            <HelperText type="error" visible={!!formErrors.longitude} style={styles.helperText}>{formErrors.longitude}</HelperText>
+                        </View>
+                    </View>
+
+
+                </View>
+
+                {/* Input Descriere */}
                 <TextInput
                     {...defaultInputProps}
-                    style={[defaultInputProps.style, { flex: 1 }]}
-                    label="Latitudine"
-                    placeholder="ex: 44.4268"
-                    value={formData.latitude}
-                    onChangeText={(t) => setFormData({ ...formData, latitude: t })}
-                    keyboardType="numeric"
+                    style={{ height: 100, width: '100%' }}
+                    label="Descriere business"
+                    placeholder="Scrie câteva cuvinte despre serviciile tale..."
+                    value={formData.description}
+                    onChangeText={(t) => setFormData({ ...formData, description: t })}
+                    multiline
                 />
-                <TextInput
-                    {...defaultInputProps}
-                    style={[defaultInputProps.style, { flex: 1 }]}
-                    label="Longitudine"
-                    placeholder="ex: 26.1025"
-                    value={formData.longitude}
-                    onChangeText={(t) => setFormData({ ...formData, longitude: t })}
-                    keyboardType="numeric"
-                />
+
             </View>
-
-            <TouchableOpacity style={{ marginBottom: 20, alignSelf: 'flex-start' }}>
-                <Text style={{ fontSize: 12, color: theme.colors.primary, opacity: 0.8 }}>Găsește coordonatele pe Google Maps →</Text>
-            </TouchableOpacity>
-
-            {/* 4. Textarea-ul primește o înălțime fixă pentru a nu se "bate" cu hook-ul tău */}
-            <TextInput
-                {...defaultInputProps}
-                style={[defaultInputProps.style, { height: 100, width: '100%' }]}
-                label="Descriere business"
-                placeholder="Scrie câteva cuvinte despre serviciile tale..."
-                value={formData.description}
-                onChangeText={(t) => setFormData({ ...formData, description: t })}
-                multiline
-            />
         </View>
     );
 
@@ -190,6 +399,7 @@ export default function AddLocationScreen() {
                     );
                 })}
             </View>
+            {formErrors.services && <ErrorMessage message={formErrors.services} />}
         </View>
     );
 
@@ -249,9 +459,16 @@ export default function AddLocationScreen() {
     );
 
     return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background }}>
-            <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }} showsVerticalScrollIndicator={false}>
-
+        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <KeyboardAwareScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }}
+                showsVerticalScrollIndicator={false}
+                enableOnAndroid={true}
+                extraScrollHeight={20}
+                keyboardShouldPersistTaps="handled"
+                scrollEnabled={!timePicker}
+            >
                 <View style={[
                     styles.contentWrapper, { width: maxWidth },
                     isDesktop && { backgroundColor: theme.colors.surface, marginVertical: 40, borderRadius: 24, padding: 32, ...theme.shadows.card }
@@ -264,7 +481,7 @@ export default function AddLocationScreen() {
                                 <Ionicons name="arrow-back" size={24} color={theme.colors.text.main} />
                             </TouchableOpacity>
                             <View>
-                                <Text style={[styles.headerTitle, { color: theme.colors.text.main }]}>Adaugă Locație</Text>
+                                <Text style={[styles.headerTitle, { color: theme.colors.text.main }]}>{existingLocation ? "Editează Locație" : "Adaugă Locație" }</Text>
                                 <Text style={{ color: theme.colors.text.muted }}>Pasul {step} din 3</Text>
                             </View>
                         </View>
@@ -296,52 +513,65 @@ export default function AddLocationScreen() {
                     </TouchableOpacity>
 
                 </View>
-            </ScrollView>
 
-            {/* MODAL PENTRU SELECTAREA OREI */}
-            {timePicker && (
-                <View style={styles.timeModalOverlay}>
-                    <View style={[styles.timeModalContainer, { backgroundColor: theme.colors.surface }]}>
-                        <View style={styles.timeModalHeader}>
-                            <Text style={[styles.timeModalTitle, { color: theme.colors.text.main }]}>
-                                {timePicker.type === 'open' ? 'Ora deschidere' : 'Ora închidere'}
-                            </Text>
-                            <TouchableOpacity onPress={() => setTimePicker(null)} style={{ padding: 4 }}>
-                                <Ionicons name="close" size={24} color={theme.colors.text.muted} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <View style={styles.timeOptionsGrid}>
-                                {TIME_OPTIONS.map(time => {
-                                    // Evidențiază ora deja selectată
-                                    const isSelected = formData.schedule[timePicker.dayId][timePicker.type] === time;
-                                    return (
-                                        <TouchableOpacity
-                                            key={time}
-                                            style={[
-                                                styles.timeOptionBtn,
-                                                { borderColor: theme.colors.border.light, backgroundColor: theme.colors.background },
-                                                isSelected && { borderColor: theme.colors.primary, backgroundColor: 'rgba(9, 123, 176, 0.1)' }
-                                            ]}
-                                            onPress={() => handleTimeSelect(time)}
-                                        >
-                                            <Text style={[
-                                                styles.timeOptionText,
-                                                { color: theme.colors.text.main },
-                                                isSelected && { color: theme.colors.primary, fontWeight: '700' }
-                                            ]}>
-                                                {time}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                {/* MODAL PENTRU SELECTAREA OREI */}
+                {timePicker && (
+                    <View style={styles.timeModalOverlay}>
+                        <View style={[styles.timeModalContainer, { backgroundColor: theme.colors.surface }]}>
+                            <View style={styles.timeModalHeader}>
+                                <Text style={[styles.timeModalTitle, { color: theme.colors.text.main }]}>
+                                    {timePicker.type === 'open' ? 'Ora deschidere' : 'Ora închidere'}
+                                </Text>
+                                <TouchableOpacity onPress={() => setTimePicker(null)} style={{ padding: 4 }}>
+                                    <Ionicons name="close" size={24} color={theme.colors.text.muted} />
+                                </TouchableOpacity>
                             </View>
-                        </ScrollView>
+
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {formErrors.schedule && <ErrorMessage message={formErrors.schedule} />}
+                                <View style={styles.timeOptionsGrid}>
+                                    {TIME_OPTIONS.map(time => {
+                                        // Evidențiază ora deja selectată
+                                        const isSelected = formData.schedule[timePicker.dayId][timePicker.type] === time;
+                                        return (
+                                            <TouchableOpacity
+                                                key={time}
+                                                style={[
+                                                    styles.timeOptionBtn,
+                                                    { borderColor: theme.colors.border.light, backgroundColor: theme.colors.background },
+                                                    isSelected && { borderColor: theme.colors.primary, backgroundColor: 'rgba(9, 123, 176, 0.1)' }
+                                                ]}
+                                                onPress={() => handleTimeSelect(time)}
+                                            >
+                                                <Text style={[
+                                                    styles.timeOptionText,
+                                                    { color: theme.colors.text.main },
+                                                    isSelected && { color: theme.colors.primary, fontWeight: '700' }
+                                                ]}>
+                                                    {time}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </ScrollView>
+                        </View>
                     </View>
-                </View>
-            )}
-        </KeyboardAvoidingView>
+                )}
+            </KeyboardAwareScrollView>
+            <Snackbar
+                visible={snackbar.visible}
+                onDismiss={() => setSnackbar({ ...snackbar, visible: false })}
+                duration={3000}
+                style={{ backgroundColor: theme.colors.error, borderRadius: 12 }}
+                action={{
+                    label: 'OK',
+                    onPress: () => setSnackbar({ ...snackbar, visible: false }),
+                }}
+            >
+                {snackbar.message}
+            </Snackbar>
+        </View >
     );
 }
 
@@ -381,6 +611,10 @@ const styles = StyleSheet.create({
     closedBadge: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, minWidth: 140, alignItems: 'center' },
     closedText: { fontSize: 13, fontWeight: '700' },
 
+    inputWrapper: { marginBottom: 4 },
+    helperText: { marginTop: -4, paddingHorizontal: 4 },
+    rowContainer: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+    flexHalf: { flex: 1 },
 
     timeModalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
     timeModalContainer: { width: '90%', maxWidth: 400, height: '70%', borderRadius: 24, padding: 24, ...Platform.select({ web: { boxShadow: '0px 10px 40px rgba(0,0,0,0.3)' } as any }) },

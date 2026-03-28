@@ -1,11 +1,13 @@
 import { Stack } from "expo-router";
-import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
+import { MD3DarkTheme, MD3LightTheme, PaperProvider} from "react-native-paper";
 import { lightTheme } from "../utils/themes";
 import { darkTheme } from "../utils/themes";
 import { Platform, useColorScheme } from "react-native";
 import { AuthProvider } from "@/context/AuthContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { StatusBar } from "expo-status-bar";
+import * as SystemUi from 'expo-system-ui'
+import { useEffect } from "react";
 
 export default function RootLayout() {
 
@@ -22,7 +24,10 @@ export default function RootLayout() {
       ...activeTheme.colors,
     },
   }
-
+  useEffect(() => {
+    SystemUi.setBackgroundColorAsync(activeTheme.colors.background);
+  }, [activeTheme])
+  
   if (Platform.OS === 'web') {
     return (
       <GoogleOAuthProvider clientId="64399865931-uv8ni2g23vbn427o2v6io528qkg67ovt.apps.googleusercontent.com">

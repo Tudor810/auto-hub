@@ -4,14 +4,15 @@ import { useAuth } from './AuthContext';
 import { API_BASE_URL } from '@/utils/api';
 import type { ICompany, ICompanyFormData } from '@auto-hub/shared/types/companyTypes';
 import { Platform } from 'react-native';
-// import type { ILocation } from '@auto-hub/shared/types/location'; // Dacă ai o interfață și pentru locații
-
+import type { ILocation, ILocationFormData } from '@auto-hub/shared/types/locationTypes'; // Dacă ai o interfață și pentru locații
+import { router } from 'expo-router'
 interface BusinessContextType {
   company: ICompany | null;
   locations: any[]; // Schimbă cu ILocation[] când ai tipul
   isLoadingBusiness: boolean;
   refreshBusinessData: () => Promise<void>;
-  saveCompanyData: (formData: ICompanyFormData) => Promise<{ success: boolean; error?: string }>; 
+  saveCompanyData: (formData: ICompanyFormData) => Promise<{ success: boolean; error?: string }>;
+  saveLocationData: (formData: ILocationFormData, method: string, locationId?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -20,22 +21,20 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
   const { token } = useAuth();
 
   const [company, setCompany] = useState<ICompany | null>(null);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [locations, setLocations] = useState<ILocation[]>([]);
   const [isLoadingBusiness, setIsLoadingBusiness] = useState(true);
 
-
-
   const saveCompanyData = async (formData: ICompanyFormData) => {
-    if (!token) return { success: false, error: "Neautentificat" };
+    if (Platform.OS != 'web' && !token) return { success: false, error: "Neautentificat" };
 
     try {
       const method = company ? 'PUT' : 'POST';
-      
+
       const response = await fetch(`${API_BASE_URL}/api/companies/my-company`, {
         method,
-        headers: { 
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'application/json' 
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify(formData)
@@ -43,9 +42,9 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
 
       if (response.ok) {
         // Aducem compania proaspăt salvată/creată din backend
-        const updatedCompany : ICompany = await response.json();
-        
-        setCompany(updatedCompany); 
+        const updatedCompany: ICompany = await response.json();
+
+        setCompany(updatedCompany);
         return { success: true };
       } else {
         const errorData = await response.json();
@@ -57,9 +56,54 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
     }
   };
 
+  const saveLocationData = async (formData: ILocationFormData, method: string, locationId?: string) => {
+    if (Platform.OS != 'web' && !token) return { success: false, error: "Neautentificat" };
+
+
+    const url = method === 'PUT' && locationId
+      ? `${API_BASE_URL}/api/locations/${locationId}` // For updates
+      : `${API_BASE_URL}/api/locations?companyId=${company?._id}`; // For new creations
+
+    try {
+      const response = await fetch(url , {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        // Aducem compania proaspăt salvată/creată din backend
+        const updatedLocation: ILocation = await response.json();
+
+        setLocations(prevLocations => {
+          if (method === 'POST') {
+            return [...prevLocations, updatedLocation];
+          } else {
+            // Find the existing one by ID and replace it
+            return prevLocations.map(loc =>
+              loc._id === updatedLocation._id ? updatedLocation : loc
+            );
+          }
+        });
+
+        return { success: true };
+      } else {
+
+        const errorData = await response.json()
+       return { success: false, error: errorData || "Eroare la salvare." };
+      }
+    } catch (error) {
+      console.error("Eroare de rețea la salvarea locatiei :", error);
+      return { success: false, error: "Eroare de rețea." };
+    }
+  }
   // Funcția care aduce datele
   const refreshBusinessData = async () => {
-    if (Platform.OS !== 'web' && !token) return;
+    if (Platform.OS != 'web' && !token) return;
     setIsLoadingBusiness(true);
 
     try {
@@ -78,14 +122,18 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
         setCompany(compData);
 
         // 2. Dacă avem companie, îi aducem și locațiile (folosind ID-ul ei)
-        // const locRes = await fetch(`${API_BASE_URL}/api/locations?companyId=${compData._id}`, {
-        //   headers: { 'Authorization': `Bearer ${token}` }
-        // });
+        const locRes = await fetch(`${API_BASE_URL}/api/locations?companyId=${compData._id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-        // if (locRes.ok) {
-        //   const locData = await locRes.json();
-        //   setLocations(locData);
-        // }
+        if (locRes.ok) {
+          const locData = await locRes.json();
+          setLocations(locData);
+        }
+      } else {
+        if (compRes.status === 401) {
+          router.push("/");
+        }
       }
     } catch (error) {
       console.error("Eroare la aducerea datelor de business", error);
@@ -100,7 +148,7 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
   }, [token]);
 
   return (
-    <BusinessContext.Provider value={{ company, locations, isLoadingBusiness, refreshBusinessData, saveCompanyData }} >
+    <BusinessContext.Provider value={{ company, locations, isLoadingBusiness, refreshBusinessData, saveCompanyData, saveLocationData }} >
       {children}
     </BusinessContext.Provider>
   );

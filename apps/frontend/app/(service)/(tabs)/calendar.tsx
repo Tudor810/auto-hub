@@ -1,32 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  addMonths, subMonths, format, startOfMonth, endOfMonth, 
-  startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, 
-  isToday, isSameDay 
+import {
+  addMonths, subMonths, format, startOfMonth, endOfMonth,
+  startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth,
+  isToday, isSameDay
 } from 'date-fns';
 import { ro } from 'date-fns/locale';
+import { useBusiness } from '@/context/BusinessContext';
+import { useLocalSearchParams } from 'expo-router';
+import { ILocation } from '@auto-hub/shared/types/locationTypes';
 
 export default function CalendarScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
+  const { locations } = useBusiness();
+  const { id } = useLocalSearchParams();
+
+  const [activeLocationId, setActiveLocationId] = useState<string | null>(() => {
+    if (id) return id;
+    if (locations.length > 0) return locations[0]._id;
+    return null;
+  });
+
+
+  useEffect(() => {
+    // If we don't have an active ID yet but locations just finished loading
+    if (!activeLocationId && locations.length > 0) {
+      setActiveLocationId(id || locations[0]._id);
+    }
+  }, [locations, id]);
+
 
   // Responsive Layout Logic (Same as Profile/Services)
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
+  const selectedLocation : ILocation = locations.find(loc => loc._id === activeLocationId) || null;
 
-  // Mock Data
-  const locations = [
-    { id: 'loc1', name: 'Service Centru' },
-    { id: 'loc2', name: 'Vulcanizare Nord' },
-  ];
-
-  const [activeLocationId, setActiveLocationId] = useState(locations[0].id);
-
- // --- CALENDAR LOGIC ---
+  // --- CALENDAR LOGIC ---
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -66,7 +79,7 @@ export default function CalendarScreen() {
     setSelectedDate(date);
     // Aici poți adăuga și logica pentru a încărca programările din acea zi, dacă ai un API pentru asta
   }
-  
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
@@ -138,11 +151,11 @@ export default function CalendarScreen() {
           <View style={styles.content}>
 
             {/* 3. CALENDAR WIDGET */}
-      
+
             {/* 3. CALENDAR WIDGET */}
             <View style={[
-              styles.calendarCard, 
-              { 
+              styles.calendarCard,
+              {
                 backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface,
                 borderColor: theme.colors.border.light,
                 borderWidth: isDesktop ? 1 : 0,
@@ -151,19 +164,19 @@ export default function CalendarScreen() {
             ]}>
               {/* Calendar Controls */}
               <View style={styles.calendarControls}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={handlePrevMonth}
                   style={[styles.iconButton, { borderColor: theme.colors.border.light }]}
                 >
                   <Ionicons name="chevron-back" size={18} color={theme.colors.text.main} />
                 </TouchableOpacity>
-                
+
                 {/* Titlu Dinamic */}
                 <Text style={[styles.monthText, { color: theme.colors.text.main, textTransform: 'capitalize' }]}>
                   {monthTitle}
                 </Text>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   onPress={handleNextMonth}
                   style={[styles.iconButton, { borderColor: theme.colors.border.light }]}
                 >
@@ -188,10 +201,10 @@ export default function CalendarScreen() {
                       const isOtherMonth = !isSameMonth(day, currentMonth);
                       const isTodayDay = isToday(day);
                       const isSelected = isSameDay(day, selectedDate);
-                      
+
                       return (
-                        <TouchableOpacity 
-                          key={dayIndex} 
+                        <TouchableOpacity
+                          key={dayIndex}
                           onPress={() => handleSelectDate(day)}
                           style={[
                             styles.dayCell,

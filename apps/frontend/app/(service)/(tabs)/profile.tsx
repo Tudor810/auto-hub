@@ -12,18 +12,13 @@ export default function ProfileScreen() {
   const theme = useTheme<any>();
   const { logout } = useAuth();
   const { width } = useWindowDimensions();
-  const { company, isLoadingBusiness, saveCompanyData } = useBusiness();
+  const { company, isLoadingBusiness, saveCompanyData, locations} = useBusiness();
   const { user } = useAuth()
 
   // Responsive Layout Logic
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
-
-  const locations = [
-    { id: '1', name: 'Service Auto Centru', address: 'Str. Lunga nr. 4' },
-    { id: '2', name: 'Vulcanizare Nord', address: 'Bd. Nordului 10' },
-  ];
 
   const [error, setError] = useState("")
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);

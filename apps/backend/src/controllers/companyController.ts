@@ -5,6 +5,10 @@ import mongoose from "mongoose";
 
 export const getMyCompany = async (req: AuthRequest, res: Response) => {
     try {
+        if (req.user?.role !== "provider") {
+            return res.status(401).json({ message: "Nu ai acces la aceasta pagină" });
+        }
+
         const userObjectId = new mongoose.Types.ObjectId(req.user?.userId);
         const company = await Company.findOne({ ownerId: userObjectId });
 
@@ -22,6 +26,9 @@ export const getMyCompany = async (req: AuthRequest, res: Response) => {
 
 export const createCompany = async (req: AuthRequest, res: Response) => {
     try {
+        if (req.user?.role !== "provider") {
+            return res.status(401).json({ message: "Nu ai acces la aceasta pagină" });
+        }
         const userObjectId = new mongoose.Types.ObjectId(req.user?.userId);
 
         const existingCompany = await Company.findOne({ ownerId: userObjectId });
@@ -44,11 +51,15 @@ export const createCompany = async (req: AuthRequest, res: Response) => {
 
 export const editCompany = async (req: AuthRequest, res: Response) => {
     try {
+        if (req.user?.role !== "provider") {
+            return res.status(401).json({ message: "Nu ai acces la aceasta pagină" });
+        }
+
         const userObjectId = new mongoose.Types.ObjectId(req.user?.userId);
         const updatedCompany = await Company.findOneAndUpdate(
             { ownerId: userObjectId },
-            {$set: req.body},
-            {returnDocument: 'after', runValidators: true}
+            { $set: req.body },
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!updatedCompany)
