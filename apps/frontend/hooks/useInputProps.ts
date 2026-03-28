@@ -9,7 +9,7 @@ return {
     mode: "outlined" as const,
     style: [
       {
-        marginBottom: hasError ? 0 : theme.spacing.sm,
+        // marginBottom: hasError ? 0 : theme.spacing.sm,
         fontSize: 15,
         height: 48,
       },

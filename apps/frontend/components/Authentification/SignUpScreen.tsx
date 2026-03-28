@@ -14,7 +14,8 @@ import { useTheme } from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
 import { useInputProps } from '@/hooks/useInputProps';
 import ErrorMessage from '../ErrorMessage';
-import { IAuthSuccessResponse, ISignUpRequest} from '@auto-hub/shared/types/user';
+import { IAuthSuccessResponse, ISignUpRequest } from '@auto-hub/shared/types/userTypes';
+import { API_BASE_URL } from '@/utils/api';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function SignUpScreen() {
   const validateFullName = (name: string) => !name.trim() ? 'Please enter your full name.' : '';
   const validatePhone = (phone: string) => {
     if (!phone.trim()) return 'Please enter your phone number.';
-    return /^\+40\s?\d{3}\s?\d{3}\s?\d{3}$/.test(phone) ? '' : 'Please enter a valid phone number (+40 xxx xxx xxx).';
+    return /^(\+40|0)\s?[7]\d{2}\s?\d{3}\s?\d{3}$/.test(phone) ? '' : 'Please enter a valid phone number (+40 xxx xxx xxx).';
   };
   const validateEmail = (email: string) => {
     if (!email.trim()) return 'Please enter your email address.';
@@ -75,7 +76,7 @@ export default function SignUpScreen() {
     handleSignUpAsync(role, fullName, phoneNumber, email, password, confirmPassword, terms);
   };
 
-  const handleNameChange = (text: string) => {  
+  const handleNameChange = (text: string) => {
     setFullName(text);
     if (signUpPressed) setFullNameError(validateFullName(text));
   };
@@ -85,8 +86,8 @@ export default function SignUpScreen() {
   };
 
   const handlePhoneNumberChange = (text: string) => {
-      setPhoneNumber(text);
-      if (signUpPressed) setPhoneNumberError(validatePhone(text));
+    setPhoneNumber(text);
+    if (signUpPressed) setPhoneNumberError(validatePhone(text));
   }
 
 
@@ -99,6 +100,7 @@ export default function SignUpScreen() {
     setPassword(text);
     if (signUpPressed) setPasswordError(validatePassword(text));
   }
+
 
   const handleSignUpAsync = async (role: string | null, fullName: string, phoneNumber: string, email: string, password: string, confirmPassword: string, terms: boolean) => {
     console.log('Signing up with:', { role, fullName, phoneNumber, email, password, confirmPassword, terms });
@@ -121,12 +123,12 @@ export default function SignUpScreen() {
     setTermsError(termsErr);
 
     if (nameErr || phoneErr || emailErr || passErr || confirmErr || termsErr) {
-      return; 
+      return;
     }
-
+    
     try {
 
-      const paylod : ISignUpRequest = {
+      const paylod: ISignUpRequest = {
         role: role as 'customer' | 'provider',
         fullName: fullName,
         phoneNumber: phoneNumber,
@@ -135,7 +137,9 @@ export default function SignUpScreen() {
         termsAccepted: terms
       }
 
-      const data = await fetch("http://192.168.0.110:5000/api/auth/signup", {
+
+      
+      const data = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -144,7 +148,7 @@ export default function SignUpScreen() {
         body: JSON.stringify(paylod)
       });
 
-      const responseData : IAuthSuccessResponse = await data.json();
+      const responseData: IAuthSuccessResponse = await data.json();
 
       if (data.ok) {
         await login(responseData.user, responseData.token); // Save to context and storage
@@ -179,9 +183,9 @@ export default function SignUpScreen() {
       enableOnAndroid={true}
     >
       <View style={{ flex: 1, minHeight: 20 }} />
-      
+
       <Surface style={styles.card} elevation={Platform.OS === 'android' ? 2 : 0}>
-        
+
         {/* Centralized Back to Sign In Link */}
         <Link href="/" asChild>
           <TouchableOpacity style={styles.goBackButton}>
@@ -192,20 +196,20 @@ export default function SignUpScreen() {
 
         {/* Headers */}
         <Text variant="headlineSmall" style={styles.title}>Create your account</Text>
-        
+
         {/* Form Container */}
         <View style={styles.formContainer}>
-          
+
           {/* 1. Register As Dropdown (The standard RNP implementation) */}
           <Text variant="titleSmall" style={styles.inputLabel}>Register as</Text>
           <Menu
             visible={visible}
             onDismiss={closeMenu}
             contentStyle={styles.menuContent}
-          
+
             anchor={
-              <TouchableOpacity onPress={openMenu} activeOpacity={1}>
-                <TextInput 
+              <TouchableOpacity onPress={openMenu} activeOpacity={1} style = {{marginBottom: theme.spacing.sm}}>
+                <TextInput
                   {...inputProps}
                   placeholder="Select your role..."
                   value={getRoleLabel()}
@@ -216,7 +220,7 @@ export default function SignUpScreen() {
                     colors: {
                       ...inputProps.theme.colors,
                       // This forces the placeholder/label color to match your theme
-                      onSurfaceVariant: theme.colors.text.placeholder, 
+                      onSurfaceVariant: theme.colors.text.placeholder,
                       // This forces the value text (once selected) to be dark
                       onSurface: role ? theme.colors.text.main : theme.colors.text.placeholder,
                     }
@@ -224,18 +228,18 @@ export default function SignUpScreen() {
                   // 2. Ensure the placeholder color is explicitly set here too
                   placeholderTextColor={theme.colors.text.placeholder}
                   left={
-                    <TextInput.Icon 
-                      icon={() => <Feather name="users" size={20} color={theme.colors.text.placeholder} />} 
+                    <TextInput.Icon
+                      icon={() => <Feather name="users" size={20} color={theme.colors.text.placeholder} />}
                     />
                   }
                   right={
                     <TextInput.Icon
                       onPress={openMenu}
                       icon={() => (
-                        <Feather 
-                          name="chevron-down" 
-                          size={20} 
-                          color={theme.colors.text.placeholder} 
+                        <Feather
+                          name="chevron-down"
+                          size={20}
+                          color={theme.colors.text.placeholder}
                         />
                       )}
                     />
@@ -244,10 +248,10 @@ export default function SignUpScreen() {
               </TouchableOpacity>
             }
           >
-            <Menu.Item titleStyle = {{color: theme.colors.text.main}} onPress={() => { setRole('customer'); closeMenu(); }} title="Customer (Finding Services)" />
-            <Menu.Item titleStyle = {{color: theme.colors.text.main}} onPress={() => { setRole('provider'); closeMenu(); }} title="Service Provider (Offering Services)" />
+            <Menu.Item titleStyle={{ color: theme.colors.text.main }} onPress={() => { setRole('customer'); closeMenu(); }} title="Customer (Finding Services)" />
+            <Menu.Item titleStyle={{ color: theme.colors.text.main }} onPress={() => { setRole('provider'); closeMenu(); }} title="Service Provider (Offering Services)" />
           </Menu>
-          
+
           {/* Conditional Common Fields (Shown once a role is selected) */}
           {role && (
             <>
@@ -256,7 +260,7 @@ export default function SignUpScreen() {
                 {...fullNameInputProps}
                 placeholder="Your Full Name"
                 value={fullName}
-                onChangeText={(text) => {handleNameChange(text) }}
+                onChangeText={(text) => { handleNameChange(text) }}
                 left={<TextInput.Icon icon={() => <Feather name="user" size={20} color={theme.colors.text.placeholder} />} />}
               />
               <HelperText type="error" visible={!!fullNameError}>
@@ -268,7 +272,7 @@ export default function SignUpScreen() {
                 {...phoneNumberInputProps}
                 placeholder="+40 7xx xxx xxx"
                 value={phoneNumber}
-                onChangeText={(text) => {handlePhoneNumberChange(text)}} 
+                onChangeText={(text) => { handlePhoneNumberChange(text) }}
                 keyboardType="phone-pad"
                 left={<TextInput.Icon icon={() => <Feather name="phone" size={20} color={theme.colors.text.placeholder} />} />}
               />
@@ -283,11 +287,11 @@ export default function SignUpScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
-                  onChangeText={(text) => { handleEmailChange(text); }}
+                onChangeText={(text) => { handleEmailChange(text); }}
                 left={<TextInput.Icon icon={() => <Feather name="mail" size={20} color={theme.colors.text.placeholder} />} />}
               />
               <HelperText type="error" visible={!!emailError}>
-                        {emailError}
+                {emailError}
               </HelperText>
             </>
           )}
@@ -302,7 +306,7 @@ export default function SignUpScreen() {
                 value={password}
                 onChangeText={(text) => { handlePasswordChange(text); }}
                 left={<TextInput.Icon icon={() => <Feather name="lock" size={20} color={theme.colors.text.placeholder} />} />}
-                right={<TextInput.Icon onPress = {() => setSeePassword(!seePassword)} icon={() => <Feather name = {seePassword ? "eye" : "eye-off"} size = {20} color={theme.colors.text.placeholder} />} />} 
+                right={<TextInput.Icon onPress={() => setSeePassword(!seePassword)} icon={() => <Feather name={seePassword ? "eye" : "eye-off"} size={20} color={theme.colors.text.placeholder} />} />}
               />
               <HelperText type="error" visible={!!passwordError}>
                 {passwordError}
@@ -316,7 +320,7 @@ export default function SignUpScreen() {
                 value={confirmPassword}
                 onChangeText={(text) => handleConfirmPasswordChange(text)}
                 left={<TextInput.Icon icon={() => <Feather name="lock" size={20} color={theme.colors.text.placeholder} />} />}
-                right={<TextInput.Icon onPress = {() => setSeeConfirmPassword(!seeConfirmPassword)} icon={() => <Feather name = {seeConfirmPassword ? "eye" : "eye-off"} size = {20} color={theme.colors.text.placeholder} />} />} 
+                right={<TextInput.Icon onPress={() => setSeeConfirmPassword(!seeConfirmPassword)} icon={() => <Feather name={seeConfirmPassword ? "eye" : "eye-off"} size={20} color={theme.colors.text.placeholder} />} />}
               />
               <HelperText type="error" visible={!!confirmPasswordError}>
                 {confirmPasswordError}
@@ -324,10 +328,10 @@ export default function SignUpScreen() {
 
               {/* Terms Checkbox (Usually relevant for sign-up) */}
               <View style={styles.termsContainer}>
-                 <Feather onPress={() => {setTerms(prevState => !prevState); setTermsError('');}} name={terms ? "check-square" : "square"} size={16} color={terms ? theme.colors.primary : theme.colors.text.placeholder} />
-                 <Text variant="bodySmall" style={styles.termsText}>
-                    I agree to the <Link href = {"/terms"} style={styles.termsLink}>Terms of Service</Link> and <Link href = {"/privacy"} style={styles.termsLink}>Privacy Policy</Link>.
-                 </Text>
+                <Feather onPress={() => { setTerms(prevState => !prevState); setTermsError(''); }} name={terms ? "check-square" : "square"} size={16} color={terms ? theme.colors.primary : theme.colors.text.placeholder} />
+                <Text variant="bodySmall" style={styles.termsText}>
+                  I agree to the <Link href={"/terms"} style={styles.termsLink}>Terms of Service</Link> and <Link href={"/privacy"} style={styles.termsLink}>Privacy Policy</Link>.
+                </Text>
               </View>
               <HelperText type="error" visible={!!termsError}>
                 {termsError}
@@ -344,16 +348,16 @@ export default function SignUpScreen() {
               >
                 Create account
               </Button>
-               {error && (
-                  <ErrorMessage message={error} />
-                )}
+              {error && (
+                <ErrorMessage message={error} />
+              )}
             </>
           )}
 
         </View>
 
       </Surface>
-      
+
       <View style={{ flex: 1, minHeight: 20 }} />
     </KeyboardAwareScrollView>
   );
@@ -426,9 +430,9 @@ const makeStyles = (theme: any) => StyleSheet.create({
     lineHeight: 18
   },
   termsLink: {
-     fontWeight: '700',
-     color: theme.colors.text.main,
-     textDecorationLine: 'underline'
+    fontWeight: '700',
+    color: theme.colors.text.main,
+    textDecorationLine: 'underline'
   },
   buttonContent: {
     height: 48,

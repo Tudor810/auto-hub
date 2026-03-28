@@ -14,10 +14,11 @@ import { Button, HelperText, Surface, Text, TextInput, useTheme } from 'react-na
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import { useInputProps } from '@/hooks/useInputProps';
-import { IAuthSuccessResponse, ILoginRequest } from '@auto-hub/shared/types/user';
+import { IAuthSuccessResponse, ILoginRequest } from '@auto-hub/shared/types/userTypes';
 import { useAuth } from '@/context/AuthContext';
 import GoogleSignInButton from './GoogleSignInButton';
 import ErrorMessage from '../ErrorMessage';
+import { API_BASE_URL } from '@/utils/api';
 
 
 export default function LoginScreen() {
@@ -76,7 +77,7 @@ export default function LoginScreen() {
 
       const payload : ILoginRequest = { email, password };
 
-      const data = await fetch("http://192.168.0.110:5000/api/auth/login", {
+      const data = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

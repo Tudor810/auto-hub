@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { IUserBase } from '@auto-hub/shared/types/user';
+import { IUserBase } from '@auto-hub/shared/types/userTypes';
 
 // 1. Extend the shared interface, add Mongoose Document, and add the secret password
 export interface IUserDocument extends Omit<IUserBase, '_id'>, Document {

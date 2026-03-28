@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Platform,
@@ -13,11 +13,13 @@ import { useTheme } from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
 import { useInputProps } from '@/hooks/useInputProps';
 import ErrorMessage from '@/components/ErrorMessage';
-import { IAuthSuccessResponse, IUserUpdateResponse } from '@auto-hub/shared/types/user';
+import { IUserUpdateResponse } from '@auto-hub/shared/types/userTypes';
+import { API_BASE_URL } from '@/utils/api';
+
 
 export default function SelectRole() {
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, token } = useAuth();
 
   // -- Form State --
   const [role, setRole] = useState<'customer' | 'provider' | null>(null);
@@ -47,10 +49,11 @@ export default function SelectRole() {
     setError('');
 
     try {
-      const response = await fetch("http://192.168.0.110:5000/api/auth/update-role", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-role`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         credentials: "include",
         body: JSON.stringify({ role })
@@ -59,8 +62,8 @@ export default function SelectRole() {
       const data: IUserUpdateResponse = await response.json();
 
       if (response.ok) {
-        updateUser({ role: data.user.role }); 
-        
+        updateUser({ role: data.user.role });
+
         router.replace('/dashboard');
       } else {
         setError(data.message || 'Failed to update role. Please try again.');

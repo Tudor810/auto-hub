@@ -7,7 +7,7 @@ export default function ClientLayout() {
 
   // 1. Wait for auth to load
   if (isLoading) {
-    return <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator /></View>;
+    return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
   }
 
   // 2. Security Guard: If not a client, send back to dispatcher
@@ -17,9 +17,9 @@ export default function ClientLayout() {
 
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#2196F3' }}>
-      <Tabs.Screen 
-        name="home" 
-        options={{ title: 'AutoHub', tabBarLabel: 'Home' }} 
+      <Tabs.Screen
+        name="home"
+        options={{ title: 'AutoHub', tabBarLabel: 'Home' }}
       />
       {/* <Tabs.Screen 
         name="my-cars" 

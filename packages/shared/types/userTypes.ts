@@ -19,6 +19,7 @@ export interface ISignUpRequest extends Omit<IUserBase, '_id' | 'createdAt' | 'u
 export interface IAuthUser {
   id: string; 
   email: string;
+  phoneNumber: string;
   fullName: string;
   role: 'customer' | 'provider' | null;  
 }

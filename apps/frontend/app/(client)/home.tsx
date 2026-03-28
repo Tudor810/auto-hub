@@ -5,7 +5,7 @@ import { Button } from "react-native-paper";
 export default function Home() {
 
 
-  const {user, logout} = useAuth();
+  const { user, logout } = useAuth();
   return (
     <View
       style={{
