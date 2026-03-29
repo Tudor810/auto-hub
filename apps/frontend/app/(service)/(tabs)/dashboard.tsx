@@ -202,7 +202,7 @@ export default function DashboardScreen() {
 
             <View style={[styles.servicesCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border.light }]}>
               <View>
-                <Text style={[styles.servicesCount, { color: theme.colors.text.main }]}>{services.length}</Text>
+                <Text style={[styles.servicesCount, { color: theme.colors.text.main }]}>{services ? services.filter(service => service.isActive).length : 0}</Text>
                 <Text style={[styles.servicesLabel, { color: theme.colors.text.muted }]}>servicii active</Text>
               </View>
               <TouchableOpacity

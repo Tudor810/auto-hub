@@ -1,4 +1,4 @@
-import { Tabs, Redirect } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -16,19 +16,13 @@ export default function ClientLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#2196F3' }}>
-      <Tabs.Screen
-        name="home"
-        options={{ title: 'AutoHub', tabBarLabel: 'Home' }}
-      />
-      {/* <Tabs.Screen 
-        name="my-cars" 
-        options={{ title: 'Garage', tabBarLabel: 'My Cars' }} 
-      />
-      <Tabs.Screen 
-        name="profile" 
-        options={{ title: 'Account', tabBarLabel: 'Profile' }} 
-      /> */}
-    </Tabs>
+     <Stack screenOptions={{ headerShown: false }}>
+        
+        {/* Grupul tău principal cu Tab-uri de jos (le-am redenumit logic "tabs" sau pot fi ignorate ca nume dacă le declari direct) */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        
+        {/* <Stack.Screen name="add-location"  /> */}
+        
+      </Stack>
   );
 }

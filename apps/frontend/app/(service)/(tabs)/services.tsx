@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useTheme, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useBusiness } from '@/context/BusinessContext';
 import { useServices } from '@/hooks/useServices';
@@ -34,8 +34,11 @@ export default function ServicesScreen() {
   }, [locations, id]);
 
   const groupedServices = services?.reduce((acc, service) => {
-    // If a service doesn't have a category, put it in 'Altele'
-    const categoryName = service.category?.trim() || 'Altele';
+    // If the service is inactive, force it into the "Servicii Inactive" group.
+    // Otherwise, use its normal category (or 'Altele' if empty).
+    const categoryName = !service.isActive
+      ? 'Servicii Inactive'
+      : (service.category?.trim() || 'Altele');
 
     if (!acc[categoryName]) {
       acc[categoryName] = [];
@@ -43,6 +46,12 @@ export default function ServicesScreen() {
     acc[categoryName].push(service);
     return acc;
   }, {} as Record<string, typeof services>);
+
+  const sortedCategories = Object.entries(groupedServices).sort(([categoryA], [categoryB]) => {
+    if (categoryA === 'Servicii Inactive') return 1;  // Push to the bottom
+    if (categoryB === 'Servicii Inactive') return -1; // Keep at the bottom
+    return categoryA.localeCompare(categoryB);        // Sort the active ones alphabetically A-Z
+  });
 
   // Logic for responsive design
   const isWeb = Platform.OS === 'web';
@@ -141,15 +150,22 @@ export default function ServicesScreen() {
           {/* Empty State / Cards go here */}
 
           <View style={{ width: '100%', paddingHorizontal: 30, paddingBottom: 40 }}>
-            {Object.keys(groupedServices).length > 0 ? (
-              Object.entries(groupedServices).map(([category, categoryServices]) => (
-                <View key={category} style={{ marginBottom: 24 }}>
+            {isLoading ? (
+              <View style={{ marginTop: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={{ marginTop: 12, color: theme.colors.text.muted }}>
+                  Se încarcă serviciile...
+                </Text>
+              </View>
+            ) : sortedCategories.length > 0 ? (
 
-                  {/* CATEGORY HEADER */}
+              // 👇 USE sortedCategories HERE 👇
+              sortedCategories.map(([category, categoryServices]) => (
+                <View key={category} style={{ marginBottom: 24 }}>
                   <Text style={{
                     fontSize: 13,
                     fontWeight: '700',
-                    color: theme.colors.text.muted,
+                    color: category === 'Servicii Inactive' ? theme.colors.error : theme.colors.text.muted,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     marginBottom: 12,
@@ -158,14 +174,13 @@ export default function ServicesScreen() {
                     {category}
                   </Text>
 
-                  {/* SERVICES IN THIS CATEGORY */}
                   {categoryServices.map((service) => (
                     <ServiceCard
                       key={service._id}
                       service={service}
                       onEdit={(svc) => {
-                        setEditingService(svc); // 1. Save the service data to state
-                        setAddModalVisible(true); // 2. Open the modal
+                        setEditingService(svc);
+                        setAddModalVisible(true);
                       }}
                       onDelete={(id) => {
                         deleteService(id);
@@ -175,19 +190,17 @@ export default function ServicesScreen() {
                 </View>
               ))
             ) : (
-              /* Empty State */
               <View style={[
                 styles.emptyState,
                 { borderColor: theme.colors.border.light, backgroundColor: isDesktop ? theme.colors.background : 'transparent' }
               ]}>
                 <Ionicons name="briefcase-outline" size={40} color={theme.colors.text.placeholder} />
                 <Text style={[styles.emptyText, { color: theme.colors.text.muted }]}>
-                  Nu ai niciun serviciu adăugat pentru {selectedLocation.name}.
+                  Nu ai niciun serviciu adăugat pentru {selectedLocation?.name || 'această locație'}.
                 </Text>
               </View>
             )}
           </View>
-
 
         </ScrollView>}
 

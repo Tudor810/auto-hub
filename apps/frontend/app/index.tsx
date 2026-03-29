@@ -22,6 +22,6 @@ export default function Index() {
     }
 
     return user.role === 'provider'
-        ? <Redirect href="/(service)/profile" />
-        : <Redirect href="/(client)/home" />;
+        ? <Redirect href="/(service)/(tabs)/profile" />
+        : <Redirect href="/(client)/(tabs)/profile" />;
 }
