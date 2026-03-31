@@ -25,6 +25,7 @@ export default function ServicesScreen() {
   const { services, isLoading, addService, deleteService, updateService } = useServices(activeLocationId);
   const [editingService, setEditingService] = useState<IService | null>(null);
   const [isAddModalVisible, setAddModalVisible] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // If we don't have an active ID yet but locations just finished loading
@@ -223,7 +224,7 @@ export default function ServicesScreen() {
                 setAddModalVisible(false);
                 setEditingService(null);
               } else {
-                console.log(result.error);
+                setError(result.error || "");
               }
             } else {
               // We are in ADD mode
@@ -231,10 +232,11 @@ export default function ServicesScreen() {
               if (result.success) {
                 setAddModalVisible(false);
               } else {
-                console.log(result.error);
+                setError(result.error || "");
               }
             }
           }}
+           error = {error}
         />}
     </View>
   );

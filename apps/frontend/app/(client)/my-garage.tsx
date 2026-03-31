@@ -14,18 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CarCard from '@/components/Client/CarComponent';
 import { useNavigation, useRouter} from 'expo-router';
+import { ICar } from '@auto-hub/shared/types/carTypes';
+import { useCars } from '@/hooks/useCars';
 
 // --- Mock Data ---
-interface Car {
-  id: string;
-  make: string;
-  model: string;
-  year: string;
-  plate: string;
-  fuel: string;
-  itpDays: number;
-  rcaDays: number;
-}
 
 export default function MyGarageScreen() {
   const theme = useTheme<any>();
@@ -38,36 +30,9 @@ export default function MyGarageScreen() {
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
 
-  // --- Dynamic Colors (Dark Mode Support) ---
-  const tagBgColor = theme.dark ? 'rgba(255, 255, 255, 0.1)' : '#F3F4F6'; // Light gray / subtle dark
-  const tagBorderColor = theme.dark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB';
-  const tagTextColor = theme.dark ? '#FFFFFF' : theme.colors.text.secondary;
-
-  const [cars, setCars] = useState<Car[]>([
-    {
-      id: '1',
-      make: 'Seat',
-      model: 'Toledo',
-      year: '2017',
-      plate: 'B134ABC',
-      fuel: 'Diesel',
-      itpDays: 5,
-      rcaDays: 5,
-    }
-  ]);
-
+  const {cars, deleteCar} = useCars();
   const carsCount = cars.length;
 
-  // --- Actions ---
-  const handleDeleteCar = (id: string) => {
-    // Add your delete logic here
-    console.log('Delete car:', id);
-  };
-
-  const handleAddCar = () => {
-    // Navigate to add car screen
-    console.log('Navigate to Add Car');
-  };
 
   const navigation = useNavigation();
 
@@ -102,7 +67,7 @@ export default function MyGarageScreen() {
 
           <TouchableOpacity
             style={[styles.backButton, !isDesktop && { paddingHorizontal: 20 }]}
-            onPress={() => navigation.goBack()}
+            onPress={() => router.push("/(client)/(tabs)/home")}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={28} color={theme.colors.text.main} />
@@ -113,7 +78,7 @@ export default function MyGarageScreen() {
             <View>
               <Text style={[styles.pageTitle, { color: theme.colors.text.main }]}>Garajul meu</Text>
               <Text style={[styles.pageSubtitle, { color: theme.colors.text.muted }]}>
-                {carsCount} mașini înregistrate
+                {carsCount} {carsCount !== 1 ? 'mașini înregistrate' : 'mașină înregistrată'} 
               </Text>
             </View>
 
@@ -130,12 +95,15 @@ export default function MyGarageScreen() {
           {/* CARS LIST */}
           <View style={[styles.listContainer, !isDesktop && { paddingHorizontal: 20 }]}>
             {carsCount > 0 ? (
-              cars.map((car, index) => (
+              cars.map((car) => (
                 <CarCard
-                  key={index}
+                  key={car._id}
                   car={car}
-                  onDelete={() => { }}
-                  onEdit={() => console.log("Navigate to edit")}
+                  onDelete={() => deleteCar(car._id)}
+                  onEdit={() => router.push({
+                    pathname: '/(client)/add-car',
+                    params: {id: car._id}
+                  })}
                 />
               ))
             ) : (

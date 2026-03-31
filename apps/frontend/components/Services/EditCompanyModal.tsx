@@ -223,7 +223,7 @@ export default function EditCompanyModal({ visible, onClose, initialData, onSave
               <Text style={styles.saveBtnText}>Salvează Modificările</Text>
             </TouchableOpacity>
             
-            {error ? <ErrorMessage message={error} /> : null}
+            {error && <ErrorMessage message={error} />}
 
           </ScrollView>
         </View>

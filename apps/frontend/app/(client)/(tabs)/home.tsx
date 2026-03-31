@@ -15,12 +15,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CarCard from '@/components/Client/CarComponent';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
+import { useCars } from '@/hooks/useCars';
+
+
 export default function HomeScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const {user} = useAuth();
   const router = useRouter();
 
+  const {cars} = useCars();
 
   // --- Responsive Layout Logic ---
   const isWeb = Platform.OS === 'web';
@@ -28,21 +33,8 @@ export default function HomeScreen() {
   const maxWidth = isDesktop ? 800 : '100%';
 
 
-  const {user} = useAuth();
-
-  const mockCars = [
-    {
-      id: '1',
-      make: 'Seat',
-      model: 'Toledo',
-      year: '2017',
-      plate: 'B134ABC',
-      fuel: 'Diesel',
-      itpDays: 0,
-      rcaDays: 0,
-    }
-  ];
-  const carsCount = mockCars.length;
+  
+  const carsCount = cars.length;
 
   // --- Category Data Arrays (Grouped for 4 - Tractari - 4 layout) ---
   const topCategories = [
@@ -170,7 +162,7 @@ export default function HomeScreen() {
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Mașinile tale</Text>
-                <Text style={styles.statValue}>{user?.carCount || 0}</Text>
+                <Text style={styles.statValue}>{carsCount}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Programări active</Text>
@@ -232,14 +224,15 @@ export default function HomeScreen() {
 
             {carsCount > 0 ? (
               // --- STATE: WITH CAR ---
-             mockCars.map((car) => (
-                <CarCard key={car.id} car={car} />
+             cars.map((car) => (
+                <CarCard key={car._id} car={car} />
              ))
             ) : (
               // --- STATE: EMPTY GARAGE ---
               <TouchableOpacity
                 style={[styles.emptyGarageCard, { borderColor: theme.colors.border?.light || '#E5E7EB', backgroundColor: theme.colors.surface }]}
                 activeOpacity={0.7}
+                onPress={() => router.push('/(client)/add-car')}
               >
                 <View style={[styles.addCarIconBox, { backgroundColor: theme.colors.primary + '15' }]}>
                   <Ionicons name="add" size={28} color={theme.colors.primary} />

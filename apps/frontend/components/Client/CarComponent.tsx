@@ -1,31 +1,21 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Platform,
   useWindowDimensions
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-
-// --- Types ---
-export interface Car {
-  id: string;
-  make: string;
-  model: string;
-  year: string;
-  plate: string;
-  fuel: string;
-  itpDays: number;
-  rcaDays: number;
-}
+import { ICar } from '@auto-hub/shared/types/carTypes'
+import { differenceInDays } from 'date-fns';
 
 interface CarCardProps {
-  car: Car;
-  onDelete?: () => void; // Optional: Shows the trash icon
-  onEdit?: () => void;   // Optional: Shows the edit pencil icon
+  car: ICar;
+  onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
@@ -41,9 +31,17 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
   const tagTextColor = theme.dark ? '#FFFFFF' : theme.colors.text.secondary;
   const tagBorderColor = theme.dark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB';
 
+  const getDaysLeft = (date?: Date | string | null): number | null => {
+    if (!date) return 0;
+    // We wrap it in new Date() just in case the backend sends it as an ISO string instead of a JS Date object
+    return differenceInDays(new Date(date), new Date());
+  };
+
   // --- Dynamic Status Logic ---
-  const getStatusTheme = (days: number) => {
-    if (days < 0) {
+ const getStatusTheme = (days: number | null) => {
+    if (days === null) {
+      return { text: 'Nesetat', color: '#9CA3AF', bg: theme.dark ? 'rgba(156, 163, 175, 0.15)' : '#F3F4F6', weight: 0 };
+    } else if (days < 0) {
       return { text: 'Expirat', color: '#EF4444', bg: theme.dark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2', weight: 3 };
     } else if (days <= 30) {
       return { text: `${days} zile`, color: '#D97706', bg: theme.dark ? 'rgba(217, 119, 6, 0.15)' : '#FEF3C7', weight: 2 };
@@ -52,8 +50,11 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
     }
   };
 
-  const itpStatus = getStatusTheme(car.itpDays);
-  const rcaStatus = getStatusTheme(car.rcaDays);
+  const itpDays = getDaysLeft(car.itpDate);
+  const rcaDays = getDaysLeft(car.rcaDate);
+
+  const itpStatus = getStatusTheme(itpDays);
+  const rcaStatus = getStatusTheme(rcaDays);
 
   const maxWeight = Math.max(itpStatus.weight, rcaStatus.weight);
   const isDanger = maxWeight === 3;
@@ -83,7 +84,7 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
 
           {/* Right: Details */}
           <View style={styles.carDetails}>
-            
+
             {/* Title & Action Buttons Row */}
             <View style={styles.carTitleRow}>
               <View style={styles.carMakeModelBox}>
@@ -94,8 +95,7 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
               {/* ACTION BUTTONS (Edit & Delete) */}
               <View style={styles.actionButtonsRow}>
                 {onEdit && (
-                  <TouchableOpacity 
-                    // Using a light tint of your primary color for the edit button background
+                  <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.colors.primary + '15' }]}
                     onPress={onEdit}
                     activeOpacity={0.7}
@@ -103,9 +103,9 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
                     <Ionicons name="pencil" size={16} color={theme.colors.primary} />
                   </TouchableOpacity>
                 )}
-                
+
                 {onDelete && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
                     onPress={onDelete}
                     activeOpacity={0.7}
@@ -119,7 +119,8 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
             {/* Tags Row (Plate & Fuel) */}
             <View style={styles.tagsRow}>
               <View style={[styles.tagBadge, { backgroundColor: tagBgColor }]}>
-                <Text style={[styles.tagText, { color: tagTextColor }]}>{car.plate}</Text>
+                {/* 👇 Changed from car.plate to car.plateNr to match ICar */}
+                <Text style={[styles.tagText, { color: tagTextColor }]}>{car.plateNr}</Text>
               </View>
               <View style={[styles.tagBadge, { backgroundColor: 'transparent', borderWidth: 1, borderColor: tagBorderColor }]}>
                 <Text style={[styles.tagText, { color: tagTextColor }]}>{car.fuel}</Text>
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   carMakeModelBox: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', flex: 1, gap: 8 },
   carMake: { fontSize: 18, fontWeight: '800' },
   carYear: { fontSize: 15, fontWeight: '500' },
-  
+
   // New Action Buttons Styles
   actionButtonsRow: {
     flexDirection: 'row',

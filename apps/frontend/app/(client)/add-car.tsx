@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,15 +6,19 @@ import {
     TouchableOpacity,
     StyleSheet,
     Platform,
-    useWindowDimensions
+    useWindowDimensions,
+    TouchableWithoutFeedback
 } from 'react-native';
 import { useTheme, TextInput, HelperText, Snackbar } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import {ICarFormData} from '@auto-hub/shared/types/carTypes'
+import { ICarFormData } from '@auto-hub/shared/types/carTypes'
 import { useInputProps } from '../../hooks/useInputProps';
-
+import { format } from 'date-fns';
+import DateTimePicker, { useDefaultStyles } from 'react-native-ui-datepicker'
+import { useCars } from '@/hooks/useCars';
+import ErrorMessage from '@/components/ErrorMessage';
 
 const CAR_MAKES = ['Audi', 'BMW', 'Dacia', 'Ford', 'Mercedes-Benz', 'Renault', 'Skoda', 'Toyota', 'Volkswagen'];
 const FUELS = ['Benzină', 'Diesel', 'Hibrid', 'Electric', 'GPL'];
@@ -25,15 +29,62 @@ export default function AddCarScreen() {
     const { width } = useWindowDimensions();
     const { id } = useLocalSearchParams(); // Daca vrei sa editezi o masina mai tarziu
     const defaultInputProps = useInputProps();
+    const { cars, addCar, updateCar } = useCars();
 
     const isWeb = Platform.OS === 'web';
     const isDesktop = isWeb && width >= 800;
     const maxWidth = isDesktop ? 600 : '100%';
 
+    useEffect(() => {
+        if (id && cars.length > 0) {
+            const existingCar = cars.find(c => c._id === id);
+
+            if (existingCar) {
+                setFormData({
+                    plateNr: existingCar.plateNr || '',
+                    make: existingCar.make || '',
+                    model: existingCar.model || '',
+                    year: existingCar.year || '',
+                    fuel: existingCar.fuel || '',
+                    vin: existingCar.vin || '',
+                    engineCapacity: existingCar.engineCapacity || '',
+                    color: existingCar.color || '',
+                    // The DB returns dates as strings, so we convert them back to Date objects for the UI
+                    itpDate: existingCar.itpDate ? new Date(existingCar.itpDate) : null,
+                    rcaDate: existingCar.rcaDate ? new Date(existingCar.rcaDate) : null,
+                    rovinietaDate: existingCar.rovinietaDate ? new Date(existingCar.rovinietaDate) : null
+                });
+            }
+        }
+    }, [id, cars]);
+
     // --- FORM STATE ---
     const [step, setStep] = useState(1);
+    const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+    const [activeDateField, setActiveDateField] = useState<string | null>(null);
+    const [tempDate, setTempDate] = useState<Date>(new Date());
+
+    const showDatePicker = (field: string) => {
+        setActiveDateField(field);
+        setDatePickerVisibility(true);
+    };
+    const defaultStyles = useDefaultStyles();
+
+    const handleConfirmDate = () => {
+        if (activeDateField && tempDate) {
+            // 2. Format to standard Romanian format: DD.MM.YYYY using date-fns
+
+            setFormData((prev: any) => ({
+                ...prev,
+                [activeDateField]: tempDate
+            }));
+        }
+        setDatePickerVisibility(false);
+        setActiveDateField(null);
+    };
+
     const [formData, setFormData] = useState<ICarFormData>({
-        plateNr : '',
+        plateNr: '',
         make: '',
         model: '',
         year: '',
@@ -50,10 +101,13 @@ export default function AddCarScreen() {
         plate: '',
         make: '',
         model: '',
+        year: '',
+        fuel: ''
     });
 
     const [nextClicked, setNextClicked] = useState([false, false]);
     const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
+    const [error, setError] = useState("");
 
     // --- SELECTION MODAL STATE ---
     // A single modal state to handle Make, Year, and Fuel selections
@@ -65,32 +119,74 @@ export default function AddCarScreen() {
     } | null>(null);
 
     // --- VALIDATION ---
-    const validatePlate = (val: string) => !val.trim() ? 'Numărul de înmatriculare este obligatoriu.' : '';
+    const validatePlate = (val: string) => {
+        const trimmedVal = val.trim();
+
+        if (!trimmedVal) {
+            return 'Numărul de înmatriculare este obligatoriu.';
+        }
+
+        // Explicitly checks for real Romanian county abbreviations
+        const strictPlateRegex = /^(B|AB|AR|AG|BC|BH|BN|BT|BV|BR|BZ|CS|CL|CJ|CT|CV|DB|DJ|GL|GR|GJ|HR|HD|IL|IS|IF|MM|MH|MS|NT|OT|PH|SM|SJ|SB|SV|TR|TM|TL|VS|VL|VN)[\s-]?[0-9]{2,3}[\s-]?[A-Z]{3}$/i;
+
+        if (!strictPlateRegex.test(trimmedVal)) {
+            return 'Format invalid sau județ inexistent.';
+        }
+
+        return '';
+    };
     const validateMake = (val: string) => !val.trim() ? 'Marca este obligatorie.' : '';
     const validateModel = (val: string) => !val.trim() ? 'Modelul este obligatoriu.' : '';
+    const validateYear = (val: string) => !val.trim() ? 'Anul de fabricație este obligatoriu' : '';
+    const validateFuel = (val: string) => !val.trim() ? 'Tipul combustibilului este obligatoriu' : '';
+
+    const cleanPlate = (val: string) => val.toUpperCase().replace(/[\s-]/g, '');
 
     // --- HANDLERS ---
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step === 1) {
             setNextClicked(prev => { const n = [...prev]; n[0] = true; return n; });
 
             const plateErr = validatePlate(formData.plateNr);
             const makeErr = validateMake(formData.make);
             const modelErr = validateModel(formData.model);
+            const yearErr = validateYear(formData.year);
+            const fuelErr = validateFuel(formData.fuel);
 
-            setFormErrors({ plate: plateErr, make: makeErr, model: modelErr });
+            setFormErrors({ plate: plateErr, make: makeErr, model: modelErr, year: yearErr, fuel: fuelErr });
 
-            if (plateErr || makeErr || modelErr) {
+            if (plateErr || makeErr || modelErr || yearErr || fuelErr) {
                 return; // Stop if errors
             }
             setStep(2);
         } else {
-            // FINALIZE SAVE
-            console.log("Saving Car Data: ", formData);
-            setSnackbar({ visible: true, message: 'Mașina a fost adăugată cu succes!' });
-            setTimeout(() => {
-                router.back();
-            }, 1500);
+
+            const payloadToSave = {
+                ...formData,
+                plateNr: cleanPlate(formData.plateNr)
+            };
+
+            setFormData(payloadToSave);
+
+            let resp;
+            if (id) {
+                resp = await updateCar(Array.isArray(id) ? id[0] : id, payloadToSave);
+            } else {
+                resp = await addCar(payloadToSave);
+            }
+
+            if (resp.success) {
+                setSnackbar({
+                    visible: true,
+                    message: id ? 'Mașina a fost actualizată cu succes!' : 'Mașina a fost adăugată cu succes!'
+                });
+                setTimeout(() => {
+                    router.navigate("/(client)/my-garage")
+                }, 1500);
+            } else {
+                setError(resp.error || "");
+            }
+
         }
     };
 
@@ -106,11 +202,7 @@ export default function AddCarScreen() {
         if (!selectionModal) return;
 
         setFormData(prev => ({ ...prev, [selectionModal.type]: value }));
-
-        // Clear error if they selected a make
-        if (selectionModal.type === 'make') {
-            setFormErrors(prev => ({ ...prev, make: '' }));
-        }
+        setFormErrors(prev => ({ ...prev, [selectionModal.type]: '' }));
 
         setSelectionModal(null);
     };
@@ -163,7 +255,7 @@ export default function AddCarScreen() {
                     <Text style={[styles.inputLabel, { color: theme.colors.text.main }]}>Număr de înmatriculare *</Text>
                     <TextInput
                         {...defaultInputProps}
-                        placeholder="EX: B 123 ABC"
+                        placeholder="EX: B123ABC"
                         value={formData.plateNr}
                         autoCapitalize="characters"
                         onChangeText={(t) => {
@@ -203,15 +295,17 @@ export default function AddCarScreen() {
                 {/* An și Combustibil Row */}
                 <View style={styles.rowContainer}>
                     <SelectInput
-                        label="An fabricație"
+                        label="An fabricație*"
                         placeholder="An"
                         value={formData.year}
+                        error={formErrors.year}
                         onPress={() => openModal('year')}
                     />
                     <SelectInput
-                        label="Combustibil"
+                        label="Combustibil*"
                         placeholder="Tip"
                         value={formData.fuel}
+                        error={formErrors.fuel}
                         onPress={() => openModal('fuel')}
                     />
                 </View>
@@ -270,20 +364,20 @@ export default function AddCarScreen() {
                         <SelectInput
                             label="Expirare ITP"
                             placeholder="Alege data"
-                            value={formData.itpDate}
-                            onPress={() => console.log('Open Date Picker for ITP')}
+                            value={formData.itpDate ? format(formData.itpDate, 'dd.MM.yyyy') : ''}
+                            onPress={() => showDatePicker("itpDate")}
                         />
                         <SelectInput
                             label="Expirare RCA"
                             placeholder="Alege data"
-                            value={formData.rcaDate}
-                            onPress={() => console.log('Open Date Picker for RCA')}
+                            value={formData.rcaDate ? format(formData.rcaDate, 'dd.MM.yyyy') : ''}
+                            onPress={() => showDatePicker("rcaDate")}
                         />
                         <SelectInput
                             label="Expirare Rovinietă"
                             placeholder="Alege data"
-                            value={formData.rovinietaDate}
-                            onPress={() => console.log('Open Date Picker for Rovinieta')}
+                            value={formData.rovinietaDate ? format(formData.rovinietaDate, 'dd.MM.yyyy') : ''}
+                            onPress={() => showDatePicker("rovinietaDate")}
                         />
                     </View>
                     <View style={styles.rowContainer}>
@@ -336,7 +430,7 @@ export default function AddCarScreen() {
                                 <Ionicons name="arrow-back" size={24} color={theme.colors.text.main} />
                             </TouchableOpacity>
                             <View>
-                                <Text style={[styles.headerTitle, { color: theme.colors.text.main }]}>Adaugă mașină</Text>
+                                <Text style={[styles.headerTitle, { color: theme.colors.text.main }]}>{id ? 'Editează mașina' : 'Adaugă mașină'}</Text>
                                 <Text style={{ color: theme.colors.text.muted }}>Pasul {step} din 2</Text>
                             </View>
                         </View>
@@ -365,49 +459,55 @@ export default function AddCarScreen() {
                     >
                         <Text style={styles.continueText}>{step === 2 ? 'Salvează mașina' : 'Continuă'}</Text>
                     </TouchableOpacity>
-
+                    {error && <ErrorMessage message={error} />}
                 </View>
 
                 {/* SELECTION MODAL (Used for Make, Year, Fuel) */}
                 {selectionModal && (
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}>
-                            <View style={styles.modalHeader}>
-                                <Text style={[styles.modalTitle, { color: theme.colors.text.main }]}>{selectionModal.title}</Text>
-                                <TouchableOpacity onPress={() => setSelectionModal(null)} style={{ padding: 4 }}>
-                                    <Ionicons name="close" size={24} color={theme.colors.text.muted} />
-                                </TouchableOpacity>
-                            </View>
 
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                                <View style={styles.optionsList}>
-                                    {selectionModal.options.map(option => {
-                                        const isSelected = formData[selectionModal.type] === option;
-                                        return (
-                                            <TouchableOpacity
-                                                key={option}
-                                                style={[
-                                                    styles.optionBtn,
-                                                    { borderBottomColor: theme.colors.border?.light || '#F3F4F6' },
-                                                    isSelected && { backgroundColor: theme.colors.primary + '10' }
-                                                ]}
-                                                onPress={() => handleSelectOption(option)}
-                                            >
-                                                <Text style={[
-                                                    styles.optionText,
-                                                    { color: theme.colors.text.main },
-                                                    isSelected && { color: theme.colors.primary, fontWeight: '700' }
-                                                ]}>
-                                                    {option}
-                                                </Text>
-                                                {isSelected && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                    <TouchableWithoutFeedback onPress={() => setSelectionModal(null)}>
+                        <View style={styles.modalOverlay}>
+                            <TouchableWithoutFeedback>
+                                <View style={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}>
+                                    <View style={styles.modalHeader}>
+                                        <Text style={[styles.modalTitle, { color: theme.colors.text.main }]}>{selectionModal.title}</Text>
+                                        <TouchableOpacity onPress={() => setSelectionModal(null)} style={{ padding: 4 }}>
+                                            <Ionicons name="close" size={24} color={theme.colors.text.muted} />
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                                        <View style={styles.optionsList}>
+                                            {selectionModal.options.map(option => {
+                                                const isSelected = formData[selectionModal.type] === option;
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={option}
+                                                        style={[
+                                                            styles.optionBtn,
+                                                            { borderBottomColor: theme.colors.border?.light || '#F3F4F6' },
+                                                            isSelected && { backgroundColor: theme.colors.primary + '10' }
+                                                        ]}
+                                                        onPress={() => handleSelectOption(option)}
+                                                    >
+                                                        <Text style={[
+                                                            styles.optionText,
+                                                            { color: theme.colors.text.main },
+                                                            isSelected && { color: theme.colors.primary, fontWeight: '700' }
+                                                        ]}>
+                                                            {option}
+                                                        </Text>
+                                                        {isSelected && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
+                                    </ScrollView>
                                 </View>
-                            </ScrollView>
+                            </TouchableWithoutFeedback>
+
                         </View>
-                    </View>
+                    </TouchableWithoutFeedback>
                 )}
 
             </KeyboardAwareScrollView>
@@ -420,6 +520,60 @@ export default function AddCarScreen() {
             >
                 {snackbar.message}
             </Snackbar>
+
+
+            {/* --- ADD THE DATE PICKER MODAL HERE --- */}
+            {/* --- CUSTOM DATE PICKER OVERLAY --- */}
+            {isDatePickerVisible && (
+                <TouchableWithoutFeedback onPress={() => setDatePickerVisibility(false)}>
+                    <View style={styles.modalOverlay}>
+
+                        {/* Inner wrapper catches clicks so they don't close the overlay */}
+                        <TouchableWithoutFeedback>
+                            <View style={[
+                                styles.modalContainer,
+                                { backgroundColor: theme.colors.surface, padding: 20, width: '90%', maxWidth: 400 }
+                            ]}>
+
+                                <DateTimePicker
+                                    mode="single"
+                                    date={tempDate}
+                                    onChange={(params: any) => {
+                                        if (params.date) setTempDate(new Date(params.date));
+                                    }}
+                                    styles={{
+                                        ...defaultStyles,
+                                        header: {
+                                            color: theme.colors.text.main,
+                                            fontWeight: 'bold'
+                                        },
+                                        weekday_label: { color: theme.colors.text.muted },
+                                        day_label: { color: theme.colors.text.main },
+                                        selected: { backgroundColor: theme.colors.primary },
+                                        selected_label: { color: '#FFFFFF', fontWeight: 'bold' },
+                                    }}
+
+                                />
+
+                                <TouchableOpacity
+                                    onPress={handleConfirmDate}
+                                    style={{
+                                        backgroundColor: theme.colors.primary,
+                                        padding: 12,
+                                        borderRadius: 8,
+                                        marginTop: 10,
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Confirmă</Text>
+                                </TouchableOpacity>
+
+                            </View>
+                        </TouchableWithoutFeedback>
+
+                    </View>
+                </TouchableWithoutFeedback>
+            )}
         </View >
     );
 }

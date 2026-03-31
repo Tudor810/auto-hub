@@ -14,6 +14,7 @@ import { TextInput, useTheme, HelperText, Menu, Provider } from 'react-native-pa
 import { Ionicons } from '@expo/vector-icons';
 import { useInputProps } from '@/hooks/useInputProps'; // Adjust path if needed
 import { IServiceFormData, IService } from '@auto-hub/shared/types/serviceTypes'
+import ErrorMessage from '../ErrorMessage';
 
 
 interface AddServiceModalProps {
@@ -22,9 +23,10 @@ interface AddServiceModalProps {
     onSave: (serviceData: IServiceFormData) => void;
     categories: string[];
     serviceToEdit?: IService | null;
+    error: string
 }
 
-export default function AddServiceModal({ visible, onClose, onSave, categories, serviceToEdit }: AddServiceModalProps) {
+export default function AddServiceModal({ visible, onClose, onSave, categories, serviceToEdit, error }: AddServiceModalProps) {
     const theme = useTheme<any>();
 
     const textAreaProps = useInputProps({ height: 100 }, false);
@@ -263,7 +265,7 @@ export default function AddServiceModal({ visible, onClose, onSave, categories, 
                                             onPress={() => setIsMenuVisible(true)}
                                             activeOpacity={0.8}
                                         >
-                                            <View pointerEvents="none">
+                                            <View style = {{pointerEvents: "none"}}>
                                                 <TextInput
                                                     {...categoryInputProps}
                                                     label="Categorie *"
@@ -329,6 +331,7 @@ export default function AddServiceModal({ visible, onClose, onSave, categories, 
                             >
                                 <Text style={styles.saveBtnText}>{serviceToEdit ? 'Salvează modificările' : 'Adaugă serviciu'}</Text>
                             </TouchableOpacity>
+                            {error && <ErrorMessage message={error} />}
 
                         </ScrollView>
                     </View>

@@ -14,12 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router'; 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
+import { useCars } from '@/hooks/useCars';
 
 export default function ProfileScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const {logout, user} = useAuth();
+  const {cars} = useCars();
 
   // const router = useRouter();
 
@@ -29,6 +31,7 @@ export default function ProfileScreen() {
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
   const router = useRouter();
+  const carsCount = cars.length;
 
   // --- Mock Data ---
 
@@ -102,7 +105,7 @@ export default function ProfileScreen() {
                 {/* STATS ROW */}
                 <View style={styles.statsRow}>
                   <View style={styles.statCard}>
-                    <Text style={styles.statNumber}>{user?.carCount || 0}</Text>
+                    <Text style={styles.statNumber}>{carsCount}</Text>
                     <Text style={styles.statLabel}>Mașini</Text>
                   </View>
 

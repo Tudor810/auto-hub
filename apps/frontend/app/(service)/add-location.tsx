@@ -25,7 +25,7 @@ export default function AddLocationScreen() {
     const theme = useTheme<any>();
     const { width } = useWindowDimensions();
     const { saveLocationData, locations } = useBusiness();
-    const { id, origin} = useLocalSearchParams();
+    const { id, origin } = useLocalSearchParams();
     const existingLocation: ILocation = locations.find(loc => loc._id === id);
 
     const defaultInputProps = useInputProps();
@@ -93,6 +93,7 @@ export default function AddLocationScreen() {
         setTimePicker(null);
     };
     // --- STAREA FORMULARULUI ---
+    const [error, setError] = useState("");
     const [step, setStep] = useState(1);
     const defaultState: ILocationFormData = {
         name: '',
@@ -165,7 +166,7 @@ export default function AddLocationScreen() {
 
     const [nextClicked, setNextClicked] = useState([false, false, false])
     // --- HANDLERS ---
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step < 3) {
 
             setNextClicked(prevState => prevState.map((clicked, index) =>
@@ -204,24 +205,34 @@ export default function AddLocationScreen() {
             setStep(step + 1);
         }
         else {
-            if(existingLocation) {
-                saveLocationData(formData, 'PUT', id as string);
+            if (existingLocation) {
+                const resp = await saveLocationData(formData, 'PUT', id as string);
+
+                if (resp.success === true) {
+                    router.back();
+                } else {
+                    setError(resp.error || "");
+                }
             } else {
-                saveLocationData(formData, 'POST');
+                const resp = await saveLocationData(formData, 'POST');
+                if (resp.success === true) {
+                    router.back();
+                } else {
+                    setError(resp.error || "");
+                }
             }
-            router.back();
         }
     };
 
     const handleBack = () => {
         if (step > 1) setStep(step - 1);
         else {
-            if(origin === 'location') {
+            if (origin === 'location') {
                 router.push({
                     pathname: "/(service)/(location)/[id]",
-                    params : {id: existingLocation._id}
+                    params: { id: existingLocation._id }
                 });
-            } else 
+            } else
                 router.navigate("/(service)/(tabs)/profile");
         }
     };
@@ -481,7 +492,7 @@ export default function AddLocationScreen() {
                                 <Ionicons name="arrow-back" size={24} color={theme.colors.text.main} />
                             </TouchableOpacity>
                             <View>
-                                <Text style={[styles.headerTitle, { color: theme.colors.text.main }]}>{existingLocation ? "Editează Locație" : "Adaugă Locație" }</Text>
+                                <Text style={[styles.headerTitle, { color: theme.colors.text.main }]}>{existingLocation ? "Editează Locație" : "Adaugă Locație"}</Text>
                                 <Text style={{ color: theme.colors.text.muted }}>Pasul {step} din 3</Text>
                             </View>
                         </View>
@@ -511,7 +522,7 @@ export default function AddLocationScreen() {
                     >
                         <Text style={styles.continueText}>{step === 3 ? 'Finalizează înregistrarea' : 'Continuă'}</Text>
                     </TouchableOpacity>
-
+                    {error && <ErrorMessage message={error} />}
                 </View>
 
                 {/* MODAL PENTRU SELECTAREA OREI */}

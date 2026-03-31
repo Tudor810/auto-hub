@@ -24,7 +24,6 @@ export interface IAuthUser {
   fullName: string;
   role: 'customer' | 'provider' | null;  
   rating?: number;
-  carCount?: number;
   activeAppointments?: number
 }
 

@@ -7,9 +7,9 @@ export interface ICarFormData {
     vin?: string;
     engineCapacity?: string;
     color?: string;
-    itpDate: Date | null;
-    rcaDate: Date | null;
-    rovinietaDate: Date | null;
+    itpDate?: Date | null;
+    rcaDate?: Date | null;
+    rovinietaDate?: Date | null;
 }
 
 
