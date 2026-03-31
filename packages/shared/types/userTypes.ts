@@ -16,12 +16,16 @@ export interface ISignUpRequest extends Omit<IUserBase, '_id' | 'createdAt' | 'u
   role: 'customer' | 'provider' | null; // Required for signup
 }
 
+
 export interface IAuthUser {
   id: string; 
   email: string;
   phoneNumber: string;
   fullName: string;
   role: 'customer' | 'provider' | null;  
+  rating?: number;
+  carCount?: number;
+  activeAppointments?: number
 }
 
 export interface IAuthSuccessResponse {

@@ -92,7 +92,9 @@ export default function LoginScreen() {
         await login(responseData.user, responseData.token); // Save to context and storage
         router.replace('/'); 
       } else {
+        console.log(responseData);
         setError(responseData.message || 'Login failed. Please try again.');
+        return
       }
     } catch (err) {
       console.error('Sign-in error:', err);
@@ -101,8 +103,6 @@ export default function LoginScreen() {
 
     setEmailError('');
     setPasswordError('');
-    setError(''); // Clear previous errors
-
   };
 
 

@@ -333,7 +333,7 @@ export default function SignUpScreen() {
                   I agree to the <Link href={"/terms"} style={styles.termsLink}>Terms of Service</Link> and <Link href={"/privacy"} style={styles.termsLink}>Privacy Policy</Link>.
                 </Text>
               </View>
-              <HelperText type="error" visible={!!termsError}>
+              <HelperText style = {{marginTop: -30, marginBottom: 25}} type="error" visible={!!termsError}>
                 {termsError}
               </HelperText>
 

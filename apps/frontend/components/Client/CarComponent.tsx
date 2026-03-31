@@ -69,7 +69,7 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
         style={[
           styles.carCard,
           {
-            backgroundColor: isDesktop ? theme.colors.surface : theme.colors.background,
+            backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface,
             borderColor: cardBorderColor,
             borderWidth: needsAttention ? 1.5 : 1
           }

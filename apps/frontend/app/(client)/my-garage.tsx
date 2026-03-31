@@ -13,7 +13,7 @@ import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CarCard from '@/components/Client/CarComponent';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter} from 'expo-router';
 
 // --- Mock Data ---
 interface Car {
@@ -31,6 +31,7 @@ export default function MyGarageScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const router = useRouter();
 
   // --- Responsive Layout Logic ---
   const isWeb = Platform.OS === 'web';
@@ -119,7 +120,7 @@ export default function MyGarageScreen() {
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
               activeOpacity={0.8}
-              onPress={handleAddCar}
+              onPress={() => router.push('/(client)/add-car')}
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />
               <Text style={styles.addButtonText}>Adaugă</Text>

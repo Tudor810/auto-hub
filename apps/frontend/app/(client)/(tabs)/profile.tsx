@@ -19,10 +19,11 @@ export default function ProfileScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const {logout} = useAuth();
+  const {logout, user} = useAuth();
 
   // const router = useRouter();
 
+  
   // Responsive Layout Logic
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
@@ -30,12 +31,6 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   // --- Mock Data ---
-  const user = {
-    name: "Skillify Ai",
-    email: "skillify.ai7@gmail.com",
-    carsCount: 0,
-    rating: "5.0"
-  };
 
   // --- Reusable Menu Item Component ---
   const MenuItem = ({ icon, title, iconColor, iconBgColor, onPress }: any) => (
@@ -99,22 +94,22 @@ export default function ProfileScreen() {
                     <Ionicons name="person-outline" size={40} color={theme.colors.primary} />
                   </View>
                   <View style={styles.userDetails}>
-                    <Text style={styles.userName}>{user.name}</Text>
-                    <Text style={styles.userEmail}>{user.email}</Text>
+                    <Text style={styles.userName}>{user?.fullName}</Text>
+                    <Text style={styles.userEmail}>{user?.email}</Text>
                   </View>
                 </View>
 
                 {/* STATS ROW */}
                 <View style={styles.statsRow}>
                   <View style={styles.statCard}>
-                    <Text style={styles.statNumber}>{user.carsCount}</Text>
+                    <Text style={styles.statNumber}>{user?.carCount || 0}</Text>
                     <Text style={styles.statLabel}>Mașini</Text>
                   </View>
 
                   <View style={styles.statCard}>
                     <View style={styles.ratingRow}>
                       <Ionicons name="star" size={20} color="#FBBF24" />
-                      <Text style={styles.statNumber}>{user.rating}</Text>
+                      <Text style={styles.statNumber}>{user?.rating || 5}</Text>
                     </View>
                     <Text style={styles.statLabel}>Rating</Text>
                   </View>
@@ -203,7 +198,7 @@ export default function ProfileScreen() {
                   title="Ajutor & Suport" 
                   iconColor="#6B7280" 
                   iconBgColor="#F3F4F6"
-                  onPress={() => router.push("(client)/help") }
+                  onPress={() => router.push("/(client)/help") }
                 />
                 <MenuItem 
                   icon="log-out-outline" 

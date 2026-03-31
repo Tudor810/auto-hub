@@ -13,23 +13,22 @@ import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CarCard from '@/components/Client/CarComponent';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'expo-router';
 export default function HomeScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const router = useRouter();
+
 
   // --- Responsive Layout Logic ---
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
 
-  // --- Dynamic Colors for Tags (Dark Mode Fix) ---
-  const tagBgColor = theme.dark ? 'rgba(255, 255, 255, 0.1)' : '#F3F4F6';
-  const tagTextColor = theme.dark ? '#FFFFFF' : theme.colors.text.secondary;
 
-  // --- Mock Data ---
-  const userName = "Skillify";
-  const activeAppointments = 0;
+  const {user} = useAuth();
 
   const mockCars = [
     {
@@ -69,7 +68,7 @@ export default function HomeScreen() {
         style={[
           styles.categoryCard,
           {
-            backgroundColor: theme.colors.surface,
+            backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface,
             width: isDesktop ? '23.5%' : '31%',
             padding: isDesktop ? 10 : 12,
             aspectRatio: isDesktop ? 1 : 0.85,
@@ -139,7 +138,7 @@ export default function HomeScreen() {
           styles.contentWrapper,
           { width: maxWidth },
           isDesktop && {
-            backgroundColor: theme.colors.background,
+            backgroundColor: theme.colors.surface,
             marginTop: 40,
             borderRadius: 24,
             ...Platform.select({
@@ -161,7 +160,7 @@ export default function HomeScreen() {
             <View style={styles.greetingRow}>
               <View>
                 <Text style={styles.welcomeText}>Bun venit,</Text>
-                <Text style={styles.nameText}>{userName} 👋</Text>
+                <Text style={styles.nameText}>{user?.fullName.split(" "[0])} 👋</Text>
               </View>
               <TouchableOpacity style={styles.bellButton}>
                 <Ionicons name="notifications-outline" size={24} color="#FFF" />
@@ -171,11 +170,11 @@ export default function HomeScreen() {
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Mașinile tale</Text>
-                <Text style={styles.statValue}>{carsCount}</Text>
+                <Text style={styles.statValue}>{user?.carCount || 0}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Programări active</Text>
-                <Text style={styles.statValue}>{activeAppointments}</Text>
+                <Text style={styles.statValue}>{user?.activeAppointments || 0}</Text>
               </View>
             </View>
           </View>
@@ -183,7 +182,7 @@ export default function HomeScreen() {
           {/* MAIN BODY (WHITE/DARK OVERLAP) */}
           <View style={[
             styles.bodySection,
-            { backgroundColor: theme.colors.background },
+            { backgroundColor: isDesktop ? theme.colors.surface : theme.colors.background },
             isDesktop && { marginTop: 0, borderRadius: 0, padding: 30 }
           ]}>
 
@@ -226,7 +225,7 @@ export default function HomeScreen() {
               <Text style={[styles.sectionTitle, { color: theme.colors.text.main, marginBottom: 0 }]}>
                 Garajul meu
               </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/(client)/my-garage")}>
                 <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>Vezi toate {'>'}</Text>
               </TouchableOpacity>
             </View>
