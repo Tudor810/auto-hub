@@ -5,24 +5,29 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  SafeAreaView,
   Platform,
   StatusBar,
   useWindowDimensions
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-// import { useRouter } from 'expo-router'; // Uncomment when ready to link pages
+import { useRouter } from 'expo-router'; 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProfileScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const {logout} = useAuth();
+
   // const router = useRouter();
 
   // Responsive Layout Logic
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
+  const router = useRouter();
 
   // --- Mock Data ---
   const user = {
@@ -85,7 +90,7 @@ export default function ProfileScreen() {
             { backgroundColor: theme.colors.primary },
             isDesktop && { paddingTop: 40, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
           ]}>
-            <SafeAreaView style={styles.headerSafeArea}>
+            <View style={[styles.headerSafeArea, { paddingTop: insets.top }]}>
               <View style={styles.headerContent}>
                 
                 {/* USER INFO ROW */}
@@ -116,7 +121,7 @@ export default function ProfileScreen() {
                 </View>
 
               </View>
-            </SafeAreaView>
+            </View>
           </View>
 
           {/* BODY SECTION */}
@@ -142,28 +147,28 @@ export default function ProfileScreen() {
                   title="Mașinile mele" 
                   iconColor="#3B82F6" 
                   iconBgColor="#EFF6FF"
-                  onPress={() => console.log('Navigate to Cars')}
+                  onPress={() => router.push("/(client)/my-garage")}
                 />
                 <MenuItem 
                   icon="document-text-outline" 
                   title="Documente" 
                   iconColor="#10B981" 
                   iconBgColor="#ECFDF5"
-                  onPress={() => console.log('Navigate to Documents')}
+                  onPress={() => router.push("/(client)/documents")}
                 />
                 <MenuItem 
                   icon="notifications-outline" 
                   title="Notificări" 
                   iconColor="#F59E0B" 
                   iconBgColor="#FFFBEB"
-                  onPress={() => console.log('Navigate to Notifications')}
+                  onPress={() => router.push("/(client)/notifications")}
                 />
               </View>
             </View>
 
             {/* SECTION: PARTENER */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text.muted }]}>PARTENER</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text.muted }]}>CĂUTARE</Text>
               <View style={[
                 styles.cardGroup, 
                 { 
@@ -173,8 +178,8 @@ export default function ProfileScreen() {
                 }
               ]}>
                 <MenuItem 
-                  icon="briefcase-outline" 
-                  title="Devino partener" 
+                  icon="search-outline" 
+                  title="Magic Search" 
                   iconColor="#8B5CF6" 
                   iconBgColor="#F5F3FF"
                   onPress={() => console.log('Navigate to Partner Registration')}
@@ -198,14 +203,14 @@ export default function ProfileScreen() {
                   title="Ajutor & Suport" 
                   iconColor="#6B7280" 
                   iconBgColor="#F3F4F6"
-                  onPress={() => console.log('Navigate to Support')}
+                  onPress={() => router.push("(client)/help") }
                 />
                 <MenuItem 
                   icon="log-out-outline" 
                   title="Deconectare" 
                   iconColor="#EF4444" 
                   iconBgColor="#FEF2F2"
-                  onPress={() => console.log('Trigger Logout')}
+                  onPress= {logout}
                 />
               </View>
             </View>

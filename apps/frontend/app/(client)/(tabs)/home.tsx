@@ -12,7 +12,7 @@ import {
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import CarCard from '@/components/Client/CarComponent';
 export default function HomeScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
@@ -233,61 +233,9 @@ export default function HomeScreen() {
 
             {carsCount > 0 ? (
               // --- STATE: WITH CAR ---
-              mockCars.map((car) => {
-                const needsAttention = car.itpDays === 0 || car.rcaDays === 0;
-
-                return (
-                  <View
-                    key={car.id}
-                    style={[
-                      styles.carCard,
-                      {
-                        backgroundColor: isDesktop ? theme.colors.surface : theme.colors.background,
-                        borderColor: needsAttention ? '#FBBF24' : (theme.colors.border?.light || '#E5E7EB')
-                      }
-                    ]}
-                  >
-                    {needsAttention && (
-                      <View style={[styles.warningBadge, { backgroundColor: isDesktop ? theme.colors.surface : theme.colors.background }]}>
-                        <Ionicons name="warning" size={16} color="#FBBF24" />
-                      </View>
-                    )}
-
-                    <View style={styles.carCardInner}>
-                      <View style={[styles.carIconBox, { backgroundColor: theme.dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}>
-                        <Ionicons name="car-outline" size={32} color={theme.colors.text.secondary} />
-                      </View>
-
-                      <View style={styles.carDetails}>
-                        <View style={styles.carTitleRow}>
-                          <Text style={[styles.carMake, { color: theme.colors.text.main }]}>{car.make} {car.model}</Text>
-                          <Text style={[styles.carYear, { color: theme.colors.text.muted }]}>{car.year}</Text>
-                        </View>
-
-                        <View style={styles.tagsRow}>
-                          <View style={[styles.tagBadge, { backgroundColor: tagBgColor }]}>
-                            <Text style={[styles.tagText, { color: tagTextColor }]}>{car.plate}</Text>
-                          </View>
-                          <View style={[styles.tagBadge, { backgroundColor: tagBgColor }]}>
-                            <Text style={[styles.tagText, { color: tagTextColor }]}>{car.fuel}</Text>
-                          </View>
-                        </View>
-
-                        <View style={styles.statusTagsRow}>
-                          <View style={[styles.statusBadge, { backgroundColor: theme.dark ? 'rgba(217, 119, 6, 0.15)' : '#FEF3C7' }]}>
-                            <Ionicons name="document-text-outline" size={12} color="#D97706" />
-                            <Text style={[styles.statusText, { color: '#D97706' }]}>ITP: {car.itpDays} zile</Text>
-                          </View>
-                          <View style={[styles.statusBadge, { backgroundColor: theme.dark ? 'rgba(217, 119, 6, 0.15)' : '#FEF3C7' }]}>
-                            <Ionicons name="shield-checkmark-outline" size={12} color="#D97706" />
-                            <Text style={[styles.statusText, { color: '#D97706' }]}>RCA: {car.rcaDays} zile</Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })
+             mockCars.map((car) => (
+                <CarCard key={car.id} car={car} />
+             ))
             ) : (
               // --- STATE: EMPTY GARAGE ---
               <TouchableOpacity
@@ -442,76 +390,6 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  carCard: {
-    borderWidth: 1.5,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-  },
-  warningBadge: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    borderRadius: 12,
-  },
-  carCardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  carIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  carDetails: {
-    flex: 1,
-  },
-  carTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 6,
-  },
-  carMake: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  carYear: {
-    fontSize: 14,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  tagBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTagsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   emptyGarageCard: {
     borderWidth: 1,

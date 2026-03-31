@@ -31,10 +31,15 @@ export default function MapScreen() {
     const [activeFilter, setActiveFilter] = useState('Toate');
 
     const filters = [
-        { id: 'Toate', icon: null },
+        { id: 'Toate', icon: 'search-outline' },
         { id: 'Service', icon: 'build-outline' },
         { id: 'ITP', icon: 'document-outline' },
-        { id: 'Vulcanizare', icon: 'disc-outline' }
+        { id: 'Vulcanizare', icon: 'disc-outline' },
+        { id: 'Detailing', icon: 'sparkles-outline'},
+        { id: 'Școală Șoferi', icon: 'school-outline'},
+        { id: 'Redobândire', icon: 'refresh-outline'},
+        { id: 'Piese Auto', icon: 'cart-outline'},
+        { id: 'Tractări', icon: 'car-sport-outline'}
     ];
 
     // --- Mock Location ---
