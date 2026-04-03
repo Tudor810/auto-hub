@@ -17,6 +17,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
     
     if (!token) {
+        console.log("Authentication required.");
         return res.status(401).json({ message: "Authentication required." });
     }
 

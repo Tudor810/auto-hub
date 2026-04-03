@@ -14,7 +14,10 @@ export interface ILocationFormData {
             close: string;
             isOpen: boolean;
         }
-    }
+    },
+    phone: String,
+    rating?: Number,
+    reviews?: Number
 }
 
 

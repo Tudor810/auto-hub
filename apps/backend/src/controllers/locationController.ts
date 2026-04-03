@@ -2,6 +2,9 @@ import { AuthRequest } from "../middleware/authMiddleware";
 import { Response } from "express";
 import Location from '../models/Location'
 import mongoose from 'mongoose'
+import { calculateAvailableSlots } from "../utils/timeUtils";
+import Appointment from "../models/Appointment";
+import { log } from "node:console";
 
 export const getLocations = async (req: AuthRequest, res: Response) => {
     try {
@@ -80,3 +83,70 @@ export const editLocation = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: "Eroare la actualizarea locației." });
     }
 }
+
+export const getAllLocations = async (req: AuthRequest, res: Response) => {
+
+    try {
+        const locations = await Location.find();
+        res.status(200).json(locations);
+    } catch(error) {
+        console.log("Eroare:", error);
+        res.status(500).json({message: "Nu există conexiune la internet"})
+    }
+}
+
+export const getAvailableSlots = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params; // locationId
+        const { date, duration } = req.query; // e.g., ?date=2024-10-25&duration=60
+
+
+        if (!id || typeof id !== 'string') {
+            return res.status(400).json({ message: "ID locație invalid." });
+        }
+        
+        if (!date) {
+            return res.status(400).json({ message: "Data este obligatorie." });
+        }
+
+        // 1. Fetch the Location to get its schedule
+        const location = await Location.findById(id);
+        if (!location) {
+            return res.status(404).json({ message: "Locația nu a fost găsită." });
+        }
+
+        // 2. Fetch existing appointments for that specific location and day
+        const appointments = await Appointment.find({
+            locationId: id,
+            date: date as string,
+            status: { $ne: 'cancelled' }
+        });
+
+        // 3. Format the appointments for your engine
+        const existingAppointments = appointments.map(app => ({
+            time: app.time,
+            // Make sure this matches your DB schema (e.g., totalDuration)
+            durationMinutes: app.totalDuration 
+        }));
+
+        // 4. Prepare parameters
+        const targetDate = new Date(date as string);
+        // Default to checking 30-min gaps if no duration is provided by the frontend
+        const serviceDuration = duration ? parseInt(duration as string, 10) : 30;
+
+
+        const availableSlots = calculateAvailableSlots(
+            targetDate,
+            location.schedule,
+            existingAppointments,
+            serviceDuration
+        );
+
+        // 6. Return ONLY the available slots array as requested
+        res.json({ availableSlots });
+
+    } catch (error) {
+        console.error("Eroare la calcularea sloturilor:", error);
+        res.status(500).json({ message: "Eroare internă la calcularea orelor disponibile." });
+    }
+};

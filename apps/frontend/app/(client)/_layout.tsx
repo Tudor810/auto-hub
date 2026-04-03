@@ -16,6 +16,7 @@ export default function ClientLayout() {
   }
 
   return (
+    
      <Stack screenOptions={{ headerShown: false }}>
         
         {/* Grupul tău principal cu Tab-uri de jos (le-am redenumit logic "tabs" sau pot fi ignorate ca nume dacă le declari direct) */}

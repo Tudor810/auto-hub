@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,7 @@ import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CarCard from '@/components/Client/CarComponent';
-import { useNavigation, useRouter} from 'expo-router';
-import { ICar } from '@auto-hub/shared/types/carTypes';
+import { useRouter} from 'expo-router';
 import { useCars } from '@/hooks/useCars';
 
 // --- Mock Data ---
@@ -32,9 +31,6 @@ export default function MyGarageScreen() {
 
   const {cars, deleteCar} = useCars();
   const carsCount = cars.length;
-
-
-  const navigation = useNavigation();
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>

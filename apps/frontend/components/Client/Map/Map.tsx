@@ -3,7 +3,7 @@
 // At runtime, the Expo bundler will ignore this and automatically 
 // grab Map.native.tsx or Map.web.tsx instead!
 
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker} from 'react-native-maps';
 
 export { Marker };
 export default MapView;

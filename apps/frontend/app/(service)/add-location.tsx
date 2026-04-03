@@ -9,13 +9,20 @@ import { useInputProps } from '../../hooks/useInputProps';
 import { ILocationFormData, ILocation } from '@auto-hub/shared/types/locationTypes';
 import ErrorMessage from '@/components/ErrorMessage';
 import { useBusiness } from '@/context/BusinessContext';
+import { ServiceCategory } from '@auto-hub/shared/types/serviceTypes';
 
 // --- DATE CONSTANTE ---
-const SERVICE_CATEGORIES = [
-    'Service Auto', 'Stație ITP', 'Vulcanizare', 'Detailing / Spălătorie',
-    'Tractări', 'Școală de Șoferi', 'Redobândire Permis', 'Piese Auto', 'Asigurări'
+const SERVICE_CATEGORIES: { id: ServiceCategory; label: string }[] = [
+    { id: 'Service', label: 'Service Auto' },
+    { id: 'ITP', label: 'Stație ITP' },
+    { id: 'Vulcanizare', label: 'Vulcanizare' },
+    { id: 'Detailing', label: 'Detailing / Spălătorie' },
+    { id: 'Tractări', label: 'Tractări' },
+    { id: 'Școală Șoferi', label: 'Școală de Șoferi' },
+    { id: 'Redobândire', label: 'Redobândire Permis' },
+    { id: 'Piese Auto', label: 'Piese Auto' },
+    { id: 'RCA', label: 'Asigurări' }
 ];
-
 const DAYS_OF_WEEK = [
     { id: 'luni', label: 'Luni' }, { id: 'marti', label: 'Marți' }, { id: 'miercuri', label: 'Miercuri' },
     { id: 'joi', label: 'Joi' }, { id: 'vineri', label: 'Vineri' }, { id: 'sambata', label: 'Sâmbătă' }, { id: 'duminica', label: 'Duminică' }
@@ -24,7 +31,7 @@ const DAYS_OF_WEEK = [
 export default function AddLocationScreen() {
     const theme = useTheme<any>();
     const { width } = useWindowDimensions();
-    const { saveLocationData, locations } = useBusiness();
+    const { saveLocationData, locations, company } = useBusiness();
     const { id, origin } = useLocalSearchParams();
     const existingLocation: ILocation = locations.find(loc => loc._id === id);
 
@@ -104,7 +111,8 @@ export default function AddLocationScreen() {
         schedule: DAYS_OF_WEEK.reduce((acc, day) => {
             acc[day.id] = { isOpen: day.id !== 'duminica', open: '08:00', close: '18:00' };
             return acc;
-        }, {} as ILocationFormData['schedule'])
+        }, {} as ILocationFormData['schedule']),
+        phone: company?.phone || ''
     };
 
     // 3. Initialize the state using a lazy function
@@ -122,7 +130,8 @@ export default function AddLocationScreen() {
                     longitude: existingLocation.coordinates?.longitude ? String(existingLocation.coordinates.longitude) : '',
                 },
                 // Fallback to default schedule if for some reason it's missing
-                schedule: existingLocation.schedule || defaultState.schedule
+                schedule: existingLocation.schedule || defaultState.schedule,
+                phone: company?.phone || ''
             };
         }
 
@@ -371,6 +380,7 @@ export default function AddLocationScreen() {
                     value={formData.description}
                     onChangeText={(t) => setFormData({ ...formData, description: t })}
                     multiline
+                    numberOfLines={4}
                 />
 
             </View>
@@ -391,12 +401,12 @@ export default function AddLocationScreen() {
 
             <View style={styles.servicesGrid}>
                 {SERVICE_CATEGORIES.map(service => {
-                    const isSelected = formData.services.includes(service);
+                    const isSelected = formData.services.includes(service.id);
                     return (
                         <TouchableOpacity
-                            key={service}
+                            key={service.id}
                             activeOpacity={0.7}
-                            onPress={() => toggleService(service)}
+                            onPress={() => toggleService(service.id)}
                             style={[
                                 styles.serviceCard,
                                 { backgroundColor: theme.colors.surface, borderColor: theme.colors.border.light },
@@ -404,7 +414,7 @@ export default function AddLocationScreen() {
                             ]}
                         >
                             <Text style={[styles.serviceText, { color: isSelected ? theme.colors.primary : theme.colors.text.main, fontWeight: isSelected ? '700' : '500' }]}>
-                                {service}
+                                {service.label}
                             </Text>
                         </TouchableOpacity>
                     );

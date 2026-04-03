@@ -56,7 +56,8 @@ export const useServices = (locationId: string | null) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ ...serviceData, locationId })
+        body: JSON.stringify({ ...serviceData, locationId }),
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -81,7 +82,8 @@ export const useServices = (locationId: string | null) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updatedData)
+        body: JSON.stringify(updatedData),
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -107,7 +109,8 @@ export const useServices = (locationId: string | null) => {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        credentials: 'include'
       });
 
       if (response.ok) {

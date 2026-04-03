@@ -1,13 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "esnext", // or "ESNext" depending on your Node setup
+    "module": "esnext",
     
-    "moduleResolution": "node", 
+    // FIX 1: Use modern module resolution
+    "moduleResolution": "bundler", // Or "nodenext" for pure Node.js
     
     "target": "esnext",
   
     "outDir": "./dist",
+    
+    // FIX 2: Explicitly set the root directory so TS knows how to map to outDir
+    "rootDir": ".", 
     
     "sourceMap": true,
     "declaration": true,

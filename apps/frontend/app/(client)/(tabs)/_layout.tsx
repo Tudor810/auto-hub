@@ -6,6 +6,7 @@ export default function TabsLayout() {
   const theme = useTheme<any>();
 
   return (
+    
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,

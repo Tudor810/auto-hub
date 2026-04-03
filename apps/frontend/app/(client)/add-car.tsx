@@ -27,7 +27,7 @@ const YEARS = Array.from({ length: 30 }).map((_, i) => (new Date().getFullYear()
 export default function AddCarScreen() {
     const theme = useTheme<any>();
     const { width } = useWindowDimensions();
-    const { id } = useLocalSearchParams(); // Daca vrei sa editezi o masina mai tarziu
+    const { id, origin } = useLocalSearchParams(); // Daca vrei sa editezi o masina mai tarziu
     const defaultInputProps = useInputProps();
     const { cars, addCar, updateCar } = useCars();
 
@@ -181,7 +181,7 @@ export default function AddCarScreen() {
                     message: id ? 'Mașina a fost actualizată cu succes!' : 'Mașina a fost adăugată cu succes!'
                 });
                 setTimeout(() => {
-                    router.navigate("/(client)/my-garage")
+                    router.back();
                 }, 1500);
             } else {
                 setError(resp.error || "");

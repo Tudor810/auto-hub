@@ -1,1 +1,6 @@
-export * from './types/user'
+export * from './types/userTypes'
+export * from './types/appointmentTypes'
+export * from './types/carTypes'
+export * from './types/companyTypes'
+export * from './types/locationTypes'
+export * from './types/serviceTypes'

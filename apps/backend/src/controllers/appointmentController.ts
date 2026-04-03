@@ -1,0 +1,143 @@
+import { Response } from 'express';
+import mongoose from 'mongoose';
+import Appointment from '../models/Appointment';
+import Service from '../models/Service'; // Needed to securely calculate totals
+import { AuthRequest } from '../middleware/authMiddleware';
+
+// --- HELPER ---
+const safeParseDuration = (duration: any): number => {
+    if (!duration) return 0;
+    if (typeof duration === 'number') return duration;
+    const parsed = parseInt(String(duration).replace(/[^0-9]/g, ''), 10);
+    return isNaN(parsed) ? 0 : parsed;
+};
+
+// --- 1. GET ALL APPOINTMENTS FOR A LOGGED IN USER ---
+export const getAppointments = async (req: AuthRequest, res: Response) => {
+    try {
+        // Fetch only the appointments belonging to the authenticated user
+        const appointments = await Appointment.find({ clientId: req.user!.userId })
+            .sort({ date: 1, time: 1 })
+            .populate('locationId', 'name') // <--- ADD THIS LINE
+            .populate('carId', 'make model plateNr')
+            .populate('serviceIds', 'name price duration');
+
+        return res.status(200).json(appointments);
+    } catch (error) {
+        console.error("Eroare la obținerea programărilor:", error);
+        return res.status(500).json({ message: "Eroare la aducerea programărilor." });
+    }
+};
+
+// --- 2. CREATE A NEW APPOINTMENT ---
+export const createAppointment = async (req: AuthRequest, res: Response) => {
+    try {
+        const { locationId, carId, serviceIds, date, time, notes } = req.body;
+
+        if (!locationId || !carId || !serviceIds || !date || !time) {
+            return res.status(400).json({ message: "Toate câmpurile obligatorii trebuie completate." });
+        }
+
+        const services = await Service.find({ _id: { $in: serviceIds } });
+
+        if (services.length !== serviceIds.length) {
+            return res.status(400).json({ message: "Unul sau mai multe servicii sunt invalide." });
+        }
+
+        // 2. Calculate Truthful Totals
+        const { totalDuration, totalPrice } = services.reduce(
+            (acc, service) => {
+                const durationVal = safeParseDuration(service.duration);
+                const priceVal = typeof service.price === 'string'
+                    ? parseFloat(service.price) || 0
+                    : service.price || 0;
+
+                return {
+                    totalDuration: acc.totalDuration + durationVal,
+                    totalPrice: acc.totalPrice + priceVal,
+                };
+            },
+            { totalDuration: 0, totalPrice: 0 }
+        );
+
+        // 3. Create the Appointment and inject the guaranteed userId
+        const newAppointment = new Appointment({
+            ...req.body,
+            clientId: req.user!.userId, // Injecting the user securely from middleware
+            status: 'pending',          // Force default status
+            totalPrice,                 // Use backend-calculated price
+            totalDuration               // Use backend-calculated duration
+        });
+
+        const savedAppointment = await newAppointment.save();
+        await savedAppointment.populate([
+            { path: 'locationId', select: 'name' },
+            { path: 'carId', select: 'make model plateNr' },
+            { path: 'serviceIds', select: 'name price duration' }
+        ]);
+
+        return res.status(201).json(savedAppointment);
+    } catch (error) {
+        console.error("Eroare la crearea programării:", error);
+        return res.status(500).json({ message: "Eroare la crearea programării." });
+    }
+};
+
+// --- 3. EDIT AN EXISTING APPOINTMENT ---
+export const editAppointment = async (req: AuthRequest, res: Response) => {
+    try {
+        const appointmentId = req.params.id as string;
+
+        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+            return res.status(400).json({ message: "ID-ul programării este invalid." });
+        }
+
+        const updates = req.body;
+        // Security checks: Prevent users from arbitrarily changing important backend fields
+        delete updates.totalPrice;
+        delete updates.totalDuration;
+        delete updates.clientId;
+
+        // SECURITY FIX: Match BOTH the appointmentId AND the clientId!
+        const updatedAppointment = await Appointment.findOneAndUpdate(
+            { _id: appointmentId, clientId: req.user!.userId },
+            { $set: updates },
+            { returnDocument: 'after', runValidators: true }
+        ).populate('carId', 'make model plateNr');
+
+        if (!updatedAppointment) {
+            return res.status(404).json({ message: "Programarea nu a fost găsită sau nu ai permisiunea de a o edita." });
+        }
+
+        return res.status(200).json(updatedAppointment);
+    } catch (error) {
+        console.error("Eroare la actualizarea programării:", error);
+        return res.status(500).json({ message: "Eroare la actualizarea programării." });
+    }
+};
+
+// --- 4. DELETE (CANCEL) AN APPOINTMENT ---
+export const deleteAppointment = async (req: AuthRequest, res: Response) => {
+    try {
+        const appointmentId = req.params.id as string;
+
+        if (!appointmentId || !mongoose.Types.ObjectId.isValid(appointmentId)) {
+            return res.status(400).json({ message: "ID-ul programării este invalid." });
+        }
+        
+        const cancelledAppointment = await Appointment.findOneAndUpdate(
+            { _id: appointmentId, clientId: req.user!.userId }, // SECURITY MATCH
+            { status: 'cancelled' },
+            { returnDocument: 'after' }
+        );
+
+        if (!cancelledAppointment) {
+            return res.status(404).json({ message: "Programarea nu a fost găsită sau nu ai permisiunea de a o anula." });
+        }
+
+        return res.status(200).json({ message: "Programarea a fost anulată cu succes.", id: appointmentId });
+    } catch (error) {
+        console.error("Eroare la anularea programării:", error);
+        return res.status(500).json({ message: "Eroare la anularea programării." });
+    }
+};

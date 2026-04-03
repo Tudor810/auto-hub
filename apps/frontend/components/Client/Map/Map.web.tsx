@@ -1,7 +1,7 @@
 // Map.web.tsx
 import React from 'react';
 import { Map } from 'pigeon-maps';
-import type { MapMarkerProps } from 'react-native-maps';
+
 
 // --- THE MAP WRAPPER ---
 export default function MapView({ initialRegion, children }: any) {

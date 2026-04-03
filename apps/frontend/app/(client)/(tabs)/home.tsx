@@ -22,10 +22,10 @@ export default function HomeScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const {user} = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const { cars } = useCars();
 
-  const {cars} = useCars();
 
   // --- Responsive Layout Logic ---
   const isWeb = Platform.OS === 'web';
@@ -33,26 +33,25 @@ export default function HomeScreen() {
   const maxWidth = isDesktop ? 800 : '100%';
 
 
-  
   const carsCount = cars.length;
 
   // --- Category Data Arrays (Grouped for 4 - Tractari - 4 layout) ---
   const topCategories = [
-    { icon: "build-outline", title: "Service Auto", iconColor: "#3B82F6", iconBg: "#EFF6FF" },
-    { icon: "document-outline", title: "Stație ITP", iconColor: "#10B981", iconBg: "#ECFDF5" },
-    { icon: "disc-outline", title: "Vulcanizare", iconColor: "#4B5563", iconBg: "#F3F4F6" },
-    { icon: "document-text-outline", title: "Asigurări RCA", iconColor: "#D97706", iconBg: "#FEF3C7" },
+    { icon: "build-outline", title: "Service Auto", iconColor: "#3B82F6", iconBg: "#EFF6FF", id: "Service"},
+    { icon: "document-outline", title: "Stație ITP", iconColor: "#10B981", iconBg: "#ECFDF5", id: "ITP"},
+    { icon: "disc-outline", title: "Vulcanizare", iconColor: "#4B5563", iconBg: "#F3F4F6", id: "Vulcanizare"},
+    { icon: "document-text-outline", title: "Asigurări RCA", iconColor: "#D97706", iconBg: "#FEF3C7", id: "RCA"},
   ];
 
   const bottomCategories = [
-    { icon: "sparkles-outline", title: "Detailing", iconColor: "#8B5CF6", iconBg: "#F5F3FF" },
-    { icon: "school-outline", title: "Școală Șoferi", iconColor: "#0D9488", iconBg: "#F0FDFA" },
-    { icon: "refresh-outline", title: "Redobândire", iconColor: "#3B82F6", iconBg: "#EFF6FF" },
-    { icon: "cart-outline", title: "Piese Auto", iconColor: "#EA580C", iconBg: "#FFEDD5" },
+    { icon: "sparkles-outline", title: "Detailing", iconColor: "#8B5CF6", iconBg: "#F5F3FF", id: "Detailing"},
+    { icon: "school-outline", title: "Școală Șoferi", iconColor: "#0D9488", iconBg: "#F0FDFA", id: "Școală Șoferi"},
+    { icon: "refresh-outline", title: "Redobândire", iconColor: "#3B82F6", iconBg: "#EFF6FF" , id: "Redobândire"},
+    { icon: "cart-outline", title: "Piese Auto", iconColor: "#EA580C", iconBg: "#FFEDD5", id:  "Piese Auto"},
   ];
 
   // --- Sub-Components ---
-  const CategoryCard = ({ icon, title, iconColor, iconBg }: any) => {
+  const CategoryCard = ({ icon, title, iconColor, iconBg, id}: any) => {
     const isITP = title === "Stație ITP";
 
     return (
@@ -67,6 +66,10 @@ export default function HomeScreen() {
           }
         ]}
         activeOpacity={0.7}
+        onPress={() => router.push({
+          pathname: '/(client)/(tabs)/map',
+          params: { id: id}
+        })}
       >
         <View style={[
           styles.categoryIconBox,
@@ -224,9 +227,9 @@ export default function HomeScreen() {
 
             {carsCount > 0 ? (
               // --- STATE: WITH CAR ---
-             cars.map((car) => (
+              cars.map((car) => (
                 <CarCard key={car._id} car={car} />
-             ))
+              ))
             ) : (
               // --- STATE: EMPTY GARAGE ---
               <TouchableOpacity

@@ -59,7 +59,6 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
   const saveLocationData = async (formData: ILocationFormData, method: string, locationId?: string) => {
     if (Platform.OS != 'web' && !token) return { success: false, error: "Neautentificat" };
 
-
     const url = method === 'PUT' && locationId
       ? `${API_BASE_URL}/api/locations/${locationId}` // For updates
       : `${API_BASE_URL}/api/locations?companyId=${company?._id}`; // For new creations
