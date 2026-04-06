@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
   Platform,
   useWindowDimensions
 } from 'react-native';
@@ -16,7 +15,7 @@ import CarCard from '@/components/Client/CarComponent';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { useCars } from '@/hooks/useCars';
-
+import { useAppointments } from '@/hooks/useAppointments';
 
 export default function HomeScreen() {
   const theme = useTheme<any>();
@@ -25,13 +24,14 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const { cars } = useCars();
-
+  const {appointments} = useAppointments(null);
 
   // --- Responsive Layout Logic ---
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
 
+  const nrAppointments = appointments.filter(ap => ap.status === "confirmed").length;
 
   const carsCount = cars.length;
 
@@ -120,7 +120,6 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -169,7 +168,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Programări active</Text>
-                <Text style={styles.statValue}>{user?.activeAppointments || 0}</Text>
+                <Text style={styles.statValue}>{nrAppointments || 0}</Text>
               </View>
             </View>
           </View>
@@ -235,7 +234,10 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={[styles.emptyGarageCard, { borderColor: theme.colors.border?.light || '#E5E7EB', backgroundColor: theme.colors.surface }]}
                 activeOpacity={0.7}
-                onPress={() => router.push('/(client)/add-car')}
+                onPress={() => router.push({
+                  pathname: '/(client)/add-car',
+                  params: {origin: 'home'}
+                })}
               >
                 <View style={[styles.addCarIconBox, { backgroundColor: theme.colors.primary + '15' }]}>
                   <Ionicons name="add" size={28} color={theme.colors.primary} />

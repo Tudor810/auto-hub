@@ -39,12 +39,12 @@ export default function LoginScreen() {
   const [seePassword, setSeePassword] = useState(false);
 
   const validateEmail = (email: string) => {
-    if (!email.trim()) return 'Please enter your email address.';
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Please enter a valid email address.';
+    if (!email.trim()) return 'Te rugăm să introduci adresa de email.';
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Te rugăm să introduci o adresă de email validă.';
   };
   const validatePassword = (pass: string) => {
-    if (!pass.trim()) return 'Please enter your password.';
-    return pass.length < 8 ? 'Password must be at least 8 characters long.' : '';
+    if (!pass.trim()) return 'Te rugăm să introduci parola.';
+    return pass.length < 8 ? 'Parola trebuie să aibă cel puțin 8 caractere.' : '';
   };
 
    const handleEmailChange = (text: string) => {
@@ -93,12 +93,12 @@ export default function LoginScreen() {
         router.replace('/'); 
       } else {
         console.log(responseData);
-        setError(responseData.message || 'Login failed. Please try again.');
+        setError(responseData.message || 'Autentificarea a eșuat. Te rugăm să încerci din nou.');
         return
       }
     } catch (err) {
       console.error('Sign-in error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError('A apărut o eroare neașteptată. Te rugăm să încerci din nou.');
     }
 
     setEmailError('');
@@ -139,16 +139,17 @@ export default function LoginScreen() {
         </View>
 
         {/* Headers */}
-        <Text variant="headlineSmall" style={styles.title}>Welcome to AutoHub</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Sign in to continue</Text>
+        <Text variant="headlineSmall" style={styles.title}>Bine ai venit pe AutoHub</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>Conectează-te pentru a continua</Text>
 
         {/* Google Sign In Button */}
+        {/* Notă: Asigură-te că și în componenta GoogleSignInButton ai textul în română dacă este cazul */}
         <GoogleSignInButton setError={(message) => setError(message)}/>
 
         {/* Divider */}
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
-          <Text variant="labelSmall" style={styles.dividerText}>OR</Text>
+          <Text variant="labelSmall" style={styles.dividerText}>SAU</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -157,7 +158,7 @@ export default function LoginScreen() {
           <Text variant="titleSmall" style={styles.inputLabel}>Email</Text>
           <TextInput
             {...emailInputProps}
-            placeholder="you@example.com"
+            placeholder="tu@exemplu.com"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -167,7 +168,7 @@ export default function LoginScreen() {
           <HelperText type="error" visible={!!emailError}>
             {emailError}
           </HelperText>
-          <Text variant="titleSmall" style={styles.inputLabel}>Password</Text>
+          <Text variant="titleSmall" style={styles.inputLabel}>Parolă</Text>
           <TextInput
             {...passwordInputProps}
             placeholder="••••••••" 
@@ -190,7 +191,7 @@ export default function LoginScreen() {
             contentStyle={styles.buttonContent}
             labelStyle={styles.signInButtonText}
           >
-            Sign in
+            Conectează-te
           </Button>
           {error && (
             <ErrorMessage message={error} />
@@ -202,14 +203,14 @@ export default function LoginScreen() {
       styles.footer, 
       isSmallScreen && styles.footerStacked // Apply vertical layout if small
     ]}>
-      <TouchableOpacity >
-        <Text variant="bodyMedium" style={styles.footerLink}>Forgot password?</Text>
+      <TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
+        <Text variant="bodyMedium" style={styles.footerLink}>Ai uitat parola?</Text>
       </TouchableOpacity>
       
         <Link href={"/sign-up"} asChild>
           <TouchableOpacity>
             <Text variant="bodyMedium" style={styles.footerText}>
-              Need an account? <Text style={styles.footerLinkBold}>Sign up</Text>
+              Nu ai cont? <Text style={styles.footerLinkBold}>Înregistrează-te</Text>
             </Text>
           </TouchableOpacity>
         </Link>

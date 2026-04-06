@@ -33,15 +33,15 @@ export default function SelectRole() {
 
   const getRoleLabel = () => {
     switch (role) {
-      case 'customer': return 'Customer (Finding Services)';
-      case 'provider': return 'Service Provider (Offering Services)';
-      default: return 'Select your role...';
+      case 'customer': return 'Client (Caut servicii)';
+      case 'provider': return 'Furnizor (Ofer servicii)';
+      default: return 'Selectează rolul tău...';
     }
   };
 
   const handleSelectRole = async () => {
     if (!role) {
-      setError('Please select a role');
+      setError('Te rugăm să selectezi un rol');
       return;
     }
 
@@ -66,11 +66,11 @@ export default function SelectRole() {
 
         router.replace('/dashboard');
       } else {
-        setError(data.message || 'Failed to update role. Please try again.');
+        setError(data.message || 'Eroare la actualizarea rolului. Te rugăm să încerci din nou.');
       }
     } catch (err) {
       console.error('Update role error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError('A apărut o eroare neașteptată. Te rugăm să încerci din nou.');
     } finally {
       setLoading(false);
     }
@@ -95,9 +95,9 @@ export default function SelectRole() {
       <Surface style={styles.card} elevation={Platform.OS === 'android' ? 2 : 0}>
 
         {/* Headers */}
-        <Text variant="headlineSmall" style={styles.title}>Choose your role</Text>
+        <Text variant="headlineSmall" style={styles.title}>Alege rolul tău</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          Welcome {user?.fullName}! Please select how you'll use AutoHub.
+          Bun venit {user?.fullName}! Te rugăm să selectezi cum vei folosi AutoHub.
         </Text>
 
         {/* Form Container */}
@@ -111,7 +111,7 @@ export default function SelectRole() {
               <TouchableOpacity onPress={openMenu} activeOpacity={1}>
                 <TextInput
                   {...inputProps}
-                  placeholder="Select your role..."
+                  placeholder="Selectează rolul tău..."
                   value={getRoleLabel()}
                   editable={false}
                   theme={{
@@ -147,12 +147,12 @@ export default function SelectRole() {
             <Menu.Item
               titleStyle={{ color: theme.colors.text.main }}
               onPress={() => { setRole('customer'); closeMenu(); setError(''); }}
-              title="Customer (Finding Services)"
+              title="Client (Caut servicii)"
             />
             <Menu.Item
               titleStyle={{ color: theme.colors.text.main }}
               onPress={() => { setRole('provider'); closeMenu(); setError(''); }}
-              title="Service Provider (Offering Services)"
+              title="Furnizor (Ofer servicii)"
             />
           </Menu>
 
@@ -167,7 +167,7 @@ export default function SelectRole() {
             loading={loading}
             disabled={loading}
           >
-            Continue
+            Continuă
           </Button>
 
           {error && (

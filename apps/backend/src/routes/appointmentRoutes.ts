@@ -5,16 +5,16 @@ import { createAppointment, editAppointment, getAppointments, deleteAppointment 
 
 const router = Router();
 
-// GET /api/services?locationId=123
+// GET /api/appointments?locationId=123 || /api/appointment
 router.get("/", authenticateToken, getAppointments);
 
-// POST /api/services
+// POST /api/appointments
 router.post("/", authenticateToken, createAppointment);
 
-// PUT /api/services/:id
+// PUT /api/appointments/:id
 router.put("/:id", authenticateToken, editAppointment);
 
-// DELETE /api/services/:id
+// DELETE /api/appointments/:id
 router.delete("/:id", authenticateToken, deleteAppointment);
 
 export default router;

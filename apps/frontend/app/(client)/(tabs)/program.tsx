@@ -6,20 +6,19 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Platform,
-  StatusBar,
   useWindowDimensions,
   ActivityIndicator
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router'; // or '@react-navigation/native'
+import { useFocusEffect } from 'expo-router';
 import { format, parseISO } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
 // Import your custom hook and types
-import { useAppointments } from '@/hooks/useAppointments'; // Adjust path
-import { IAppointmentResponse } from '@auto-hub/shared/types/appointmentTypes'; // Adjust path
+import { useAppointments } from '@/hooks/useAppointments'; 
+import { IAppointmentResponse } from '@auto-hub/shared/types/appointmentTypes';
 
 type TabType = 'viitoare' | 'finalizate' | 'toate';
 
@@ -27,9 +26,9 @@ export default function AppointmentsScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const [activeTab, setActiveTab] = useState<TabType>('viitoare'); // Defaulting to upcoming
+  const [activeTab, setActiveTab] = useState<TabType>('viitoare'); 
 
-  // Fetch ALL appointments for the logged-in user (passing null/undefined for location)
+  // Fetch ALL appointments for the logged-in user
   const { appointments, isLoading, refreshAppointments } = useAppointments(null);
 
   // Refresh data every time the screen comes into focus
@@ -61,8 +60,28 @@ export default function AppointmentsScreen() {
   // --- Filter Logic ---
   const filteredAppointments = appointments.filter(app => {
     if (activeTab === 'toate') return true;
-    if (activeTab === 'viitoare') return ['pending', 'confirmed', 'in_progress'].includes(app.status);
-    if (activeTab === 'finalizate') return ['completed', 'cancelled'].includes(app.status);
+
+    let isPast = false;
+    if (app.date) {
+        // Extract just the "YYYY-MM-DD" part to avoid timezone shift bugs
+        const datePart = app.date.split('T')[0];
+        const timePart = app.time || "00:00";
+        
+        // Combine them into a comparable local Date object
+        const appointmentDateTime = new Date(`${datePart}T${timePart}:00`);
+        isPast = appointmentDateTime < new Date(); // True if the date/time has passed
+    }
+
+    if (activeTab === 'viitoare') {
+        // It must NOT be in the past AND must not be explicitly completed/cancelled
+        return !isPast && ['pending', 'confirmed', 'in_progress'].includes(app.status);
+    }
+    
+    if (activeTab === 'finalizate') {
+        // It belongs here if it's physically in the past OR explicitly marked completed/cancelled
+        return isPast || ['completed', 'cancelled'].includes(app.status);
+    }
+    
     return true;
   });
 
@@ -99,8 +118,7 @@ export default function AppointmentsScreen() {
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
-      
+
       <View style={[
         styles.contentWrapper,
         { width: maxWidth },
@@ -194,7 +212,7 @@ export default function AppointmentsScreen() {
 
                   {/* MIDDLE ROW: Car Info */}
                   <View style={[styles.carInfoBox, { backgroundColor: Platform.OS === 'web' ? theme.colors.surface : theme.colors.background }]}>
-                    <Ionicons name="car-outline" size={18} color = {theme.colors.text.secondary} style={styles.carIcon} />
+                    <Ionicons name="car-outline" size={18} color={theme.colors.text.secondary} style={styles.carIcon} />
                     <Text style={[styles.carText, { color: theme.colors.text.secondary }]}>
                       {app.carId?.make} {app.carId?.model} – {app.carId?.plateNr}
                     </Text>
@@ -226,7 +244,6 @@ export default function AppointmentsScreen() {
               );
             })
           ) : (
-            /* EXACT MATCH TO YOUR EMPTY STATE SCREENSHOT */
             <View style={styles.emptyState}>
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="calendar-outline" size={40} color="#94A3B8" />
@@ -285,7 +302,6 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 16 },
   totalAmount: { fontSize: 18, fontWeight: '800' },
   
-  // EMPTY STATE STYLES MATCHING SCREENSHOT
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
   emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   emptyStateTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },

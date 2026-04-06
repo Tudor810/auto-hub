@@ -51,6 +51,12 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />,
         }}
       />
+      <Tabs.Screen 
+        name='list'
+        options={{
+          href: null
+        }}
+      />
     </Tabs>
   );
 }

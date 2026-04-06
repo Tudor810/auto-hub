@@ -18,6 +18,12 @@ const userSchema = new Schema<IUserDocument>(
     password: { type: String, required: false, minlength: 6 },
     termsAccepted: { type: Boolean, required: true, default: true },
     googleId: { type: String, required: false, sparse: true, unique: true },
+    notificationPreferences: {
+        appointments: { type: Boolean, default: true },
+        documents: { type: Boolean, default: true },
+        promotions: { type: Boolean, default: false },
+        service: { type: Boolean, default: true },
+    }
   },
   { timestamps: true }
 );

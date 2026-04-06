@@ -20,7 +20,13 @@ import DateTimePicker, { useDefaultStyles } from 'react-native-ui-datepicker'
 import { useCars } from '@/hooks/useCars';
 import ErrorMessage from '@/components/ErrorMessage';
 
-const CAR_MAKES = ['Audi', 'BMW', 'Dacia', 'Ford', 'Mercedes-Benz', 'Renault', 'Skoda', 'Toyota', 'Volkswagen'];
+const CAR_MAKES = [
+  'Alfa Romeo', 'Audi', 'BMW', 'Chevrolet', 'Citroën', 'Cupra', 'Dacia', 
+  'Fiat', 'Ford', 'Honda', 'Hyundai', 'Jaguar', 'Jeep', 'Kia', 
+  'Land Rover', 'Lexus', 'Mazda', 'Mercedes-Benz', 'Mini', 'Mitsubishi', 
+  'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Seat', 'Skoda', 
+  'Subaru', 'Suzuki', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'
+];
 const FUELS = ['Benzină', 'Diesel', 'Hibrid', 'Electric', 'GPL'];
 const YEARS = Array.from({ length: 30 }).map((_, i) => (new Date().getFullYear() - i).toString());
 
@@ -180,9 +186,16 @@ export default function AddCarScreen() {
                     visible: true,
                     message: id ? 'Mașina a fost actualizată cu succes!' : 'Mașina a fost adăugată cu succes!'
                 });
-                setTimeout(() => {
-                    router.back();
-                }, 1500);
+                
+                if(origin === 'appointment') {
+                    router.push("/(client)/add-appointment");
+                } else if(origin === 'documents') {
+                    router.push("/(client)/documents");
+                } else if(origin === 'home') {
+                    router.push("/(client)/(tabs)/home");
+                } else if(origin === 'garage') {
+                    router.push("/(client)/my-garage");
+                }
             } else {
                 setError(resp.error || "");
             }

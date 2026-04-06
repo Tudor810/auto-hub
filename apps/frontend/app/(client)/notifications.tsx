@@ -14,11 +14,15 @@ import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
+import { API_BASE_URL } from '@/utils/api';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function NotificationsScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const {user, token} = useAuth();
 
   // --- Responsive Layout Logic ---
   const isWeb = Platform.OS === 'web';
@@ -27,15 +31,46 @@ export default function NotificationsScreen() {
 
   // --- State for Toggles ---
   const [preferences, setPreferences] = useState({
-    appointments: true,
-    documents: true,
-    promotions: false,
-    service: false,
+    appointments: user?.notificationPreferences?.appointments ?? true,
+    documents: user?.notificationPreferences?.documents ?? true,
+    promotions: user?.notificationPreferences?.promotions ?? false,
+    service: user?.notificationPreferences?.service ?? true,
   });
 
+  const [error, setError] = useState('');
+
   // Toggle handler
-  const toggleSwitch = (key: keyof typeof preferences) => {
-    setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
+const toggleSwitch = async (key: keyof typeof preferences) => {
+    // 1. Calculate the new state
+    const newPreferences = { ...preferences, [key]: !preferences[key] };
+    
+    // 2. Optimistic UI update (feels instant to the user)
+    setPreferences(newPreferences);
+
+    try {
+      // 3. Send the new preferences to the backend
+      const response = await fetch(`${API_BASE_URL}/api/AUTH/preferences`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ preferences: newPreferences })
+      });
+
+      if (!response.ok) {
+        setError("Eroare la salvare preferințelor");
+      }
+      
+      // Optional: You might want to call a function here to update the user 
+      // object inside your AuthContext so it stays in sync across the app.
+
+    } catch (error) {
+      console.error("Error saving preference:", error);
+      // 4. Revert the switch back if the API call failed
+      setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
+      setError("Eroare la salvare preferințelor");
+    }
   };
 
   // --- Data Structure ---
@@ -170,7 +205,7 @@ export default function NotificationsScreen() {
               })}
 
             </View>
-
+            {error && <ErrorMessage message={error}/>}
             {/* FOOTER TEXT */}
             <Text style={[styles.footerText, { color: theme.colors.text.placeholder || '#9CA3AF' }]}>
               Poți modifica aceste setări oricând

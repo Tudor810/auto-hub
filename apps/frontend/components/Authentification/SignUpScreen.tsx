@@ -47,29 +47,28 @@ export default function SignUpScreen() {
 
   const getRoleLabel = () => {
     switch (role) {
-      case 'customer': return 'Customer';
-      case 'provider': return 'Service Provider';
-      default: return 'Select your role...';
+      case 'customer': return 'Client';
+      case 'provider': return 'Service Auto';
+      default: return 'Selectează rolul tău...';
     }
   };
 
-
-  const validateFullName = (name: string) => !name.trim() ? 'Please enter your full name.' : '';
+  const validateFullName = (name: string) => !name.trim() ? 'Te rugăm să introduci numele complet.' : '';
   const validatePhone = (phone: string) => {
-    if (!phone.trim()) return 'Please enter your phone number.';
-    return /^(\+40|0)\s?[7]\d{2}\s?\d{3}\s?\d{3}$/.test(phone) ? '' : 'Please enter a valid phone number (+40 xxx xxx xxx).';
+    if (!phone.trim()) return 'Te rugăm să introduci numărul de telefon.';
+    return /^(\+40|0)\s?[7]\d{2}\s?\d{3}\s?\d{3}$/.test(phone) ? '' : 'Te rugăm să introduci un număr valid (+40 xxx xxx xxx).';
   };
   const validateEmail = (email: string) => {
-    if (!email.trim()) return 'Please enter your email address.';
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Please enter a valid email address.';
+    if (!email.trim()) return 'Te rugăm să introduci adresa de email.';
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Te rugăm să introduci o adresă de email validă.';
   };
   const validatePassword = (pass: string) => {
-    if (!pass.trim()) return 'Please enter your password.';
-    return pass.length < 8 ? 'Password must be at least 8 characters long.' : '';
+    if (!pass.trim()) return 'Te rugăm să introduci parola.';
+    return pass.length < 8 ? 'Parola trebuie să aibă cel puțin 8 caractere.' : '';
   };
   const validateConfirmPassword = (pass: string, confirm: string) => {
-    if (!confirm.trim()) return 'Please confirm your password.';
-    return pass !== confirm ? 'Passwords do not match.' : '';
+    if (!confirm.trim()) return 'Te rugăm să confirmi parola.';
+    return pass !== confirm ? 'Parolele nu coincid.' : '';
   };
 
   const handleSignUp = () => {
@@ -90,7 +89,6 @@ export default function SignUpScreen() {
     if (signUpPressed) setPhoneNumberError(validatePhone(text));
   }
 
-
   const handleConfirmPasswordChange = (text: string) => {
     setConfirmPassword(text);
     if (signUpPressed) setConfirmPasswordError(validateConfirmPassword(password, text));
@@ -100,7 +98,6 @@ export default function SignUpScreen() {
     setPassword(text);
     if (signUpPressed) setPasswordError(validatePassword(text));
   }
-
 
   const handleSignUpAsync = async (role: string | null, fullName: string, phoneNumber: string, email: string, password: string, confirmPassword: string, terms: boolean) => {
     console.log('Signing up with:', { role, fullName, phoneNumber, email, password, confirmPassword, terms });
@@ -113,7 +110,7 @@ export default function SignUpScreen() {
     const emailErr = validateEmail(email);
     const passErr = validatePassword(password);
     const confirmErr = validateConfirmPassword(password, confirmPassword);
-    const termsErr = !terms ? 'You must agree to the Terms of Service.' : '';
+    const termsErr = !terms ? 'Trebuie să accepți Termenii și Condițiile.' : '';
 
     setFullNameError(nameErr);
     setPhoneNumberError(phoneErr);
@@ -127,7 +124,6 @@ export default function SignUpScreen() {
     }
     
     try {
-
       const paylod: ISignUpRequest = {
         role: role as 'customer' | 'provider',
         fullName: fullName,
@@ -136,8 +132,6 @@ export default function SignUpScreen() {
         password: password,
         termsAccepted: terms
       }
-
-
       
       const data = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
@@ -154,11 +148,11 @@ export default function SignUpScreen() {
         await login(responseData.user, responseData.token); // Save to context and storage
         router.replace('/');
       } else {
-        setError(responseData.message || 'Sign up failed. Please try again.');
+        setError(responseData.message || 'Înregistrarea a eșuat. Te rugăm să încerci din nou.');
       }
     } catch (err) {
       console.error('Sign-up error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError('A apărut o eroare neașteptată. Te rugăm să încerci din nou.');
     }
   }
 
@@ -190,42 +184,37 @@ export default function SignUpScreen() {
         <Link href="/" asChild>
           <TouchableOpacity style={styles.goBackButton}>
             <Feather name="arrow-left" size={20} color={theme.colors.text.secondary} />
-            <Text variant="bodyMedium" style={styles.goBackText}>Back to sign in</Text>
+            <Text variant="bodyMedium" style={styles.goBackText}>Înapoi la autentificare</Text>
           </TouchableOpacity>
         </Link>
 
         {/* Headers */}
-        <Text variant="headlineSmall" style={styles.title}>Create your account</Text>
+        <Text variant="headlineSmall" style={styles.title}>Creează un cont</Text>
 
         {/* Form Container */}
         <View style={styles.formContainer}>
 
-          {/* 1. Register As Dropdown (The standard RNP implementation) */}
-          <Text variant="titleSmall" style={styles.inputLabel}>Register as</Text>
+          {/* 1. Register As Dropdown */}
+          <Text variant="titleSmall" style={styles.inputLabel}>Înregistrează-te ca</Text>
           <Menu
             visible={visible}
             onDismiss={closeMenu}
             contentStyle={styles.menuContent}
-
             anchor={
-              <TouchableOpacity onPress={openMenu} activeOpacity={1} style = {{marginBottom: theme.spacing.sm}}>
+              <TouchableOpacity onPress={openMenu} activeOpacity={1} style={{ marginBottom: theme.spacing.sm }}>
                 <TextInput
                   {...inputProps}
-                  placeholder="Select your role..."
+                  placeholder="Selectează rolul tău..."
                   value={getRoleLabel()}
                   editable={false}
-                  // 1. We force the colors to ignore the "disabled" state
                   theme={{
                     ...inputProps.theme,
                     colors: {
                       ...inputProps.theme.colors,
-                      // This forces the placeholder/label color to match your theme
                       onSurfaceVariant: theme.colors.text.placeholder,
-                      // This forces the value text (once selected) to be dark
                       onSurface: role ? theme.colors.text.main : theme.colors.text.placeholder,
                     }
                   }}
-                  // 2. Ensure the placeholder color is explicitly set here too
                   placeholderTextColor={theme.colors.text.placeholder}
                   left={
                     <TextInput.Icon
@@ -248,17 +237,17 @@ export default function SignUpScreen() {
               </TouchableOpacity>
             }
           >
-            <Menu.Item titleStyle={{ color: theme.colors.text.main }} onPress={() => { setRole('customer'); closeMenu(); }} title="Customer (Finding Services)" />
-            <Menu.Item titleStyle={{ color: theme.colors.text.main }} onPress={() => { setRole('provider'); closeMenu(); }} title="Service Provider (Offering Services)" />
+            <Menu.Item titleStyle={{ color: theme.colors.text.main }} onPress={() => { setRole('customer'); closeMenu(); }} title="Client (Caut service-uri)" />
+            <Menu.Item titleStyle={{ color: theme.colors.text.main }} onPress={() => { setRole('provider'); closeMenu(); }} title="Service Auto (Ofer servicii)" />
           </Menu>
 
-          {/* Conditional Common Fields (Shown once a role is selected) */}
+          {/* Conditional Common Fields */}
           {role && (
             <>
-              <Text variant="titleSmall" style={styles.inputLabel}>Full Name</Text>
+              <Text variant="titleSmall" style={styles.inputLabel}>Nume Complet</Text>
               <TextInput
                 {...fullNameInputProps}
-                placeholder="Your Full Name"
+                placeholder="Numele tău complet"
                 value={fullName}
                 onChangeText={(text) => { handleNameChange(text) }}
                 left={<TextInput.Icon icon={() => <Feather name="user" size={20} color={theme.colors.text.placeholder} />} />}
@@ -267,7 +256,7 @@ export default function SignUpScreen() {
                 {fullNameError}
               </HelperText>
 
-              <Text variant="titleSmall" style={styles.inputLabel}>Phone Number</Text>
+              <Text variant="titleSmall" style={styles.inputLabel}>Număr de Telefon</Text>
               <TextInput
                 {...phoneNumberInputProps}
                 placeholder="+40 7xx xxx xxx"
@@ -283,7 +272,7 @@ export default function SignUpScreen() {
               <Text variant="titleSmall" style={styles.inputLabel}>Email</Text>
               <TextInput
                 {...emailInputProps}
-                placeholder="you@example.com"
+                placeholder="tu@exemplu.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -298,10 +287,10 @@ export default function SignUpScreen() {
 
           {role && (
             <>
-              <Text variant="titleSmall" style={styles.inputLabel}>Password</Text>
+              <Text variant="titleSmall" style={styles.inputLabel}>Parolă</Text>
               <TextInput
                 {...passwordInputProps}
-                placeholder="Min. 8 characters"
+                placeholder="Min. 8 caractere"
                 secureTextEntry={!seePassword}
                 value={password}
                 onChangeText={(text) => { handlePasswordChange(text); }}
@@ -312,10 +301,10 @@ export default function SignUpScreen() {
                 {passwordError}
               </HelperText>
 
-              <Text variant="titleSmall" style={styles.inputLabel}>Confirm Password</Text>
+              <Text variant="titleSmall" style={styles.inputLabel}>Confirmă Parola</Text>
               <TextInput
                 {...confirmPasswordInputProps}
-                placeholder="Re-enter password"
+                placeholder="Introdu din nou parola"
                 secureTextEntry={!seeConfirmPassword}
                 value={confirmPassword}
                 onChangeText={(text) => handleConfirmPasswordChange(text)}
@@ -326,14 +315,14 @@ export default function SignUpScreen() {
                 {confirmPasswordError}
               </HelperText>
 
-              {/* Terms Checkbox (Usually relevant for sign-up) */}
+              {/* Terms Checkbox */}
               <View style={styles.termsContainer}>
                 <Feather onPress={() => { setTerms(prevState => !prevState); setTermsError(''); }} name={terms ? "check-square" : "square"} size={16} color={terms ? theme.colors.primary : theme.colors.text.placeholder} />
                 <Text variant="bodySmall" style={styles.termsText}>
-                  I agree to the <Link href={"/terms"} style={styles.termsLink}>Terms of Service</Link> and <Link href={"/privacy"} style={styles.termsLink}>Privacy Policy</Link>.
+                  Sunt de acord cu <Link href={"/terms"} style={styles.termsLink}>Termenii și Condițiile</Link> și cu <Link href={"/privacy"} style={styles.termsLink}>Politica de Confidențialitate</Link>.
                 </Text>
               </View>
-              <HelperText style = {{marginTop: -30, marginBottom: 25}} type="error" visible={!!termsError}>
+              <HelperText style={{ marginTop: -30, marginBottom: 25 }} type="error" visible={!!termsError}>
                 {termsError}
               </HelperText>
 
@@ -346,7 +335,7 @@ export default function SignUpScreen() {
                 contentStyle={styles.buttonContent}
                 labelStyle={styles.signInButtonText}
               >
-                Create account
+                Creează contul
               </Button>
               {error && (
                 <ErrorMessage message={error} />
@@ -397,13 +386,13 @@ const makeStyles = (theme: any) => StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.text.main,
     textAlign: 'center',
-    marginBottom: theme.spacing.xl, // Increased margin from wireframe
+    marginBottom: theme.spacing.xl, 
   },
   formContainer: {
     width: '100%',
   },
   menuContent: {
-    backgroundColor: theme.colors.surface, // Ensure dropdown stays white
+    backgroundColor: theme.colors.surface, 
     borderRadius: theme.borderRadius.input,
     marginTop: 50,
   },
@@ -423,7 +412,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
     marginTop: theme.spacing.xs,
     marginBottom: theme.spacing.lg,
     gap: 10,
-    paddingRight: 20 // Stop text from clashing on very narrow devices
+    paddingRight: 20 
   },
   termsText: {
     color: theme.colors.text.muted,

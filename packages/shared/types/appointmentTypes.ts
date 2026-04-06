@@ -16,6 +16,13 @@ export interface IPopulatedCar {
     plateNr: string;
 }
 
+export interface IPopulatedClient {
+    _id: string;
+    fullName: string;
+    email: string;
+    phoneNumber?: string;
+}
+
 export interface IPopulatedService {
     _id: string;
     name: string;
@@ -32,7 +39,7 @@ export interface IPopulatedLocation {
 // Notice we DO NOT extend IAppointmentFormData here, we redefine the relations as objects.
 export interface IAppointmentResponse {
     _id: string;
-    clientId: string;
+    clientId: IPopulatedClient;
     date: string;
     time: string;
     notes?: string;

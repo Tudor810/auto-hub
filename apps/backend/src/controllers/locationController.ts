@@ -97,9 +97,8 @@ export const getAllLocations = async (req: AuthRequest, res: Response) => {
 
 export const getAvailableSlots = async (req: AuthRequest, res: Response) => {
     try {
-        const { id } = req.params; // locationId
-        const { date, duration } = req.query; // e.g., ?date=2024-10-25&duration=60
-
+        const { id } = req.params; 
+        const { date, duration } = req.query; 
 
         if (!id || typeof id !== 'string') {
             return res.status(400).json({ message: "ID locație invalid." });
@@ -109,40 +108,63 @@ export const getAvailableSlots = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: "Data este obligatorie." });
         }
 
-        // 1. Fetch the Location to get its schedule
+        const targetDateStr = date as string;
+
+        // --- 1. GET TODAY's DATE (Server Time) ---
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        // --- 2. NEW: BLOCK PAST DATES COMPLETELY ---
+        // Because YYYY-MM-DD is alphabetical, standard string comparison works perfectly!
+        // "2026-04-05" < "2026-04-06" is TRUE.
+        if (targetDateStr < todayStr) {
+            // Return an empty array immediately without querying the DB
+            return res.json({ availableSlots: [] }); 
+        }
+
+        // 3. Fetch the Location to get its schedule
         const location = await Location.findById(id);
         if (!location) {
             return res.status(404).json({ message: "Locația nu a fost găsită." });
         }
 
-        // 2. Fetch existing appointments for that specific location and day
+        // 4. Fetch existing appointments
         const appointments = await Appointment.find({
             locationId: id,
-            date: date as string,
+            date: targetDateStr,
             status: { $ne: 'cancelled' }
         });
 
-        // 3. Format the appointments for your engine
         const existingAppointments = appointments.map(app => ({
             time: app.time,
-            // Make sure this matches your DB schema (e.g., totalDuration)
             durationMinutes: app.totalDuration 
         }));
 
-        // 4. Prepare parameters
-        const targetDate = new Date(date as string);
-        // Default to checking 30-min gaps if no duration is provided by the frontend
+        // 5. Prepare parameters for the engine
+        const targetDate = new Date(targetDateStr);
         const serviceDuration = duration ? parseInt(duration as string, 10) : 30;
 
+        // --- 6. BLOCK PAST HOURS (If the date is exactly today) ---
+        let minAllowedTimeInMinutes = 0;
 
+        if (targetDateStr === todayStr) {
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const bookingBuffer = 30; // Minutes to give the client time to drive there
+            minAllowedTimeInMinutes = currentMinutes + bookingBuffer;
+        }
+
+        // 7. Run the engine
         const availableSlots = calculateAvailableSlots(
             targetDate,
             location.schedule,
             existingAppointments,
-            serviceDuration
+            serviceDuration,
+            minAllowedTimeInMinutes
         );
 
-        // 6. Return ONLY the available slots array as requested
         res.json({ availableSlots });
 
     } catch (error) {

@@ -8,7 +8,7 @@ import {
     ScrollView,
     Platform,
     useWindowDimensions,
-    StatusBar,
+
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,8 @@ import { ILocation } from '@auto-hub/shared/types/locationTypes';
 import { useAllLocations } from '@/hooks/useAllLocations';
 import * as Location from 'expo-location'
 import { useRouter } from 'expo-router';
+import { calculateDistance, formatDistance } from '@/utils/distance';
+
 export default function MapScreen() {
 
 
@@ -130,11 +132,23 @@ export default function MapScreen() {
         longitudeDelta: 0.0421,
     };
 
+    let distanceText = null;
+
+
+    if (userLocation && selectedLocation?.coordinates) {
+        const distanceKm = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            parseFloat(selectedLocation.coordinates.latitude as string),
+            parseFloat(selectedLocation.coordinates.longitude as string)
+        );
+        distanceText = formatDistance(distanceKm);
+    }
+
     if (isLoading) return <Text>Se încarcă harta...</Text>;
     if (error) return <Text>Eroare: {error}</Text>;
     return (
         <View style={styles.mainContainer}>
-            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
             {/* FULL SCREEN MAP WRAPPER */}
             <View style={styles.contentWrapper}>
@@ -213,7 +227,11 @@ export default function MapScreen() {
                                     onChangeText={setSearchQuery}
                                 />
                             </View>
-                            <TouchableOpacity style={[styles.listButton, { backgroundColor: theme.colors.surface }]} activeOpacity={0.8}>
+                            <TouchableOpacity
+                                style={[styles.listButton, { backgroundColor: theme.colors.surface }]}
+                                activeOpacity={0.8}
+                                onPress={() => router.push('/(client)/(tabs)/list')}
+                            >
                                 <Ionicons name="list" size={22} color={theme.colors.text.main} />
                             </TouchableOpacity>
                         </View>
@@ -332,7 +350,7 @@ export default function MapScreen() {
                                         <Text style={[styles.cardRating, { color: theme.colors.text.main }]}>4.8</Text>
                                         <Text style={styles.cardReviews}>(156)</Text>
                                         <Ionicons name="location-outline" size={14} color={theme.colors.text.muted} style={{ marginLeft: 8 }} />
-                                        <Text style={styles.cardDistance}>4.0km</Text>
+                                        <Text style={styles.cardDistance}>{distanceText ? distanceText : "User Location is Not Avaible"}</Text>
                                     </View>
 
                                     {/* Address */}

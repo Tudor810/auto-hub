@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -7,31 +7,70 @@ import { useBusiness } from '@/context/BusinessContext';
 import { useLocalSearchParams } from 'expo-router';
 import { ILocation } from '@auto-hub/shared/types/locationTypes';
 import { useServices } from '@/hooks/useServices';
+import { useAppointments } from '@/hooks/useAppointments'; // 1. IMPORT HOOK
+import { format, isSameMonth } from 'date-fns'; // 2. IMPORT DATE UTILS
 
 export default function DashboardScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
   const { locations } = useBusiness();
 
-
   const { id } = useLocalSearchParams();
 
   const [activeLocationId, setActiveLocationId] = useState<string | null>(() => {
-    if (id) return id;
+    if (id) return id as string;
     if (locations.length > 0) return locations[0]._id;
     return null;
   });
 
-
   const { services, refreshServices } = useServices(activeLocationId);
+  
+  // 3. FETCH APPOINTMENTS
+  const { appointments, isLoading: isApptsLoading, refreshAppointments } = useAppointments(activeLocationId);
 
   useFocusEffect(
     useCallback(() => {
       if (activeLocationId) {
         refreshServices();
+        refreshAppointments(); // Refresh stats when screen comes into focus
       }
-    }, [activeLocationId, refreshServices])
+    }, [activeLocationId, refreshServices, refreshAppointments])
   );
+
+  // 4. CALCULATE STATS
+  const stats = useMemo(() => {
+    let azi = 0;
+    let inAsteptare = 0;
+    let finalizate = 0;
+    let venitLuna = 0;
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const currentMonthDate = new Date();
+
+    appointments.forEach(app => {
+      // 1. Count "Azi" (Appointments scheduled for today)
+      if (app.date && app.date.split('T')[0] === todayStr) {
+        azi++;
+      }
+
+      // 2. Count "În așteptare"
+      if (app.status === 'pending') {
+        inAsteptare++;
+      }
+
+      // 3. Count "Finalizate" and Calculate "Venit Luna"
+      if (app.status === 'completed') {
+        finalizate++;
+        
+        // Add to revenue if completed this month
+        if (app.date && isSameMonth(new Date(app.date), currentMonthDate)) {
+          venitLuna += app.totalPrice || 0;
+        }
+      }
+    });
+
+    return { azi, inAsteptare, finalizate, venitLuna };
+  }, [appointments]);
 
   // Responsive Logic
   const isWeb = Platform.OS === 'web';
@@ -54,12 +93,12 @@ export default function DashboardScreen() {
             backgroundColor: theme.colors.surface,
             marginVertical: 40,
             borderRadius: 24,
-            ...theme.shadows.card,
+            ...Platform.select({ web: { boxShadow: '0px 4px 20px rgba(0,0,0,0.08)' } as any }),
             overflow: 'hidden',
           }
         ]}>
 
-          {/* 1. DARK HEADER SECTION (Refined for True Dark Mode) */}
+          {/* 1. DARK HEADER SECTION */}
           <View style={[
             styles.darkHeader,
             { backgroundColor: theme.colors.surface },
@@ -81,17 +120,17 @@ export default function DashboardScreen() {
             <View style={styles.tabsContainer}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScrollContent}>
                 {locations.map((loc) => {
-                  const isActive = loc.id === activeLocationId;
+                  const isActive = loc._id === activeLocationId;
                   return (
                     <TouchableOpacity
-                      key={loc.id}
-                      onPress={() => setActiveLocationId(loc.id)}
+                      key={loc._id}
+                      onPress={() => setActiveLocationId(loc._id)}
                       activeOpacity={0.7}
                       style={[
                         styles.tab,
                         isActive
                           ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
-                          : { backgroundColor: theme.colors.background, borderColor: theme.colors.border.medium }
+                          : { backgroundColor: theme.colors.background, borderColor: theme.colors.border?.medium || '#E5E7EB' }
                       ]}
                     >
                       <Text style={[
@@ -114,7 +153,11 @@ export default function DashboardScreen() {
                   <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
                   <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Azi</Text>
                 </View>
-                <Text style={[styles.statValue, { color: theme.colors.text.main }]}>0</Text>
+                {isApptsLoading ? (
+                    <ActivityIndicator size="small" color={theme.colors.primary} style={{ alignSelf: 'flex-start' }}/>
+                ) : (
+                    <Text style={[styles.statValue, { color: theme.colors.text.main }]}>{stats.azi}</Text>
+                )}
               </View>
 
               <View style={[styles.statBox, { backgroundColor: theme.colors.background }]}>
@@ -122,7 +165,11 @@ export default function DashboardScreen() {
                   <Ionicons name="time-outline" size={16} color="#F59E0B" />
                   <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>În așteptare</Text>
                 </View>
-                <Text style={[styles.statValue, { color: theme.colors.text.main }]}>0</Text>
+                {isApptsLoading ? (
+                    <ActivityIndicator size="small" color="#F59E0B" style={{ alignSelf: 'flex-start' }}/>
+                ) : (
+                    <Text style={[styles.statValue, { color: theme.colors.text.main }]}>{stats.inAsteptare}</Text>
+                )}
               </View>
 
               <View style={[styles.statBox, { backgroundColor: theme.colors.background }]}>
@@ -130,7 +177,11 @@ export default function DashboardScreen() {
                   <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
                   <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Finalizate</Text>
                 </View>
-                <Text style={[styles.statValue, { color: theme.colors.text.main }]}>0</Text>
+                {isApptsLoading ? (
+                    <ActivityIndicator size="small" color="#10B981" style={{ alignSelf: 'flex-start' }}/>
+                ) : (
+                    <Text style={[styles.statValue, { color: theme.colors.text.main }]}>{stats.finalizate}</Text>
+                )}
               </View>
 
               <View style={[styles.statBox, { backgroundColor: theme.colors.background }]}>
@@ -138,9 +189,13 @@ export default function DashboardScreen() {
                   <Ionicons name="trending-up-outline" size={16} color="#8B5CF6" />
                   <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Venit Luna</Text>
                 </View>
-                <Text style={[styles.statValue, { color: theme.colors.text.main }]}>
-                  0 <Text style={[styles.currencyText, { color: theme.colors.text.muted }]}>RON</Text>
-                </Text>
+                {isApptsLoading ? (
+                    <ActivityIndicator size="small" color="#8B5CF6" style={{ alignSelf: 'flex-start' }}/>
+                ) : (
+                    <Text style={[styles.statValue, { color: theme.colors.text.main }]}>
+                      {stats.venitLuna} <Text style={[styles.currencyText, { color: theme.colors.text.muted }]}>RON</Text>
+                    </Text>
+                )}
               </View>
 
             </View>
@@ -183,12 +238,15 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.emptyStateCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border.light }]}>
+            {/* You can make this empty state dynamic later based on stats.azi */}
+            <View style={[styles.emptyStateCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border?.light || '#E5E7EB' }]}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name="calendar-outline" size={32} color={theme.colors.text.placeholder} />
+                <Ionicons name="calendar-outline" size={32} color={theme.colors.text.placeholder || '#9CA3AF'} />
               </View>
               <Text style={[styles.emptyStateText, { color: theme.colors.text.muted }]}>
-                Nicio programare pentru azi la {selectedLocation.name}
+                {stats.azi === 0 
+                  ? `Nicio programare pentru azi la ${selectedLocation?.name || 'Service'}` 
+                  : `Ai ${stats.azi} programări azi la ${selectedLocation?.name || 'Service'}. Mergi la calendar!`}
               </Text>
             </View>
 
@@ -200,7 +258,7 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.servicesCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border.light }]}>
+            <View style={[styles.servicesCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border?.light || '#E5E7EB' }]}>
               <View>
                 <Text style={[styles.servicesCount, { color: theme.colors.text.main }]}>{services ? services.filter(service => service.isActive).length : 0}</Text>
                 <Text style={[styles.servicesLabel, { color: theme.colors.text.muted }]}>servicii active</Text>
@@ -266,7 +324,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 32,
-    marginTop: -40, // Pulls the buttons slightly up to overlap the top header
+    marginTop: -40, 
   },
   actionBtn: { alignItems: 'center', width: '30%' },
   actionIconBox: {

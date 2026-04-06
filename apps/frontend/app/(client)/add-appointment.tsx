@@ -185,7 +185,10 @@ export default function NewAppointmentScreen() {
                 <TouchableOpacity
                     style={[styles.addCarDashedBtn, { borderColor: theme.colors.border?.medium || '#D1D5DB' }]}
                     activeOpacity={0.6}
-                    onPress={() => router.push('/(client)/add-car')}
+                    onPress={() => router.push({
+                        pathname: '/(client)/add-car',
+                        params: {origin: 'appointment'}
+                    })}
                 >
                     <Ionicons name="car-outline" size={20} color={theme.colors.text.main} style={{ marginRight: 8 }} />
                     <Text style={[styles.addCarDashedText, { color: theme.colors.text.main }]}>Adaugă o mașină</Text>

@@ -21,9 +21,7 @@ export default function ClientLayout() {
         
         {/* Grupul tău principal cu Tab-uri de jos (le-am redenumit logic "tabs" sau pot fi ignorate ca nume dacă le declari direct) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        
-        {/* <Stack.Screen name="add-location"  /> */}
-        
+        <Stack.Screen name='magic-search' options={{headerShown: false, presentation: 'modal'}} />
       </Stack>
   );
 }

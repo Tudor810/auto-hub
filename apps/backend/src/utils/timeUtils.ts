@@ -26,11 +26,13 @@ const minutesToTime = (minutes: number): string => {
 };
 
 // --- 2. ENGINE ---
+// --- 2. ENGINE ---
 export const calculateAvailableSlots = (
     date: Date,
     schedule: any,
     existingAppointments: { time: string, durationMinutes: number }[],
-    serviceDuration: number
+    serviceDuration: number,
+    minAllowedTimeInMinutes: number = 0 // <--- 1. ADD NEW PARAMETER
 ): string[] => {
     // A. Map the JS Date to your Romanian schedule keys
     const days = ['duminica', 'luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata'];
@@ -63,6 +65,11 @@ export const calculateAvailableSlots = (
 
         const proposedStart = currentTime;
         const proposedEnd = currentTime + serviceDuration;
+
+        // --- 2. NEW CHECK: Has this slot already passed today? ---
+        if (proposedStart < minAllowedTimeInMinutes) {
+            continue; // Skip to the next loop iteration!
+        }
 
         // Check if this proposed slot overlaps with ANY busy block
         const isOverlapping = busyBlocks.some(busy => {

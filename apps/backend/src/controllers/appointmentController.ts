@@ -15,10 +15,31 @@ const safeParseDuration = (duration: any): number => {
 // --- 1. GET ALL APPOINTMENTS FOR A LOGGED IN USER ---
 export const getAppointments = async (req: AuthRequest, res: Response) => {
     try {
-        // Fetch only the appointments belonging to the authenticated user
-        const appointments = await Appointment.find({ clientId: req.user!.userId })
+        // 1. Extrage locationId din query-ul URL-ului (dacă există)
+        const { locationId } = req.query;
+        const userId = req.user!.userId;
+
+        // 2. Construiește query-ul dinamic
+        let query: any = {};
+
+        if (locationId) {
+            // --- OWNER VIEW ---
+            // Dacă frontend-ul trimite un locationId, aducem toate programările pentru acel service
+            query = { locationId: locationId as string };
+
+            // Opțional pe viitor: Aici poți adăuga un check de securitate 
+            // pentru a te asigura că `userId` este proprietarul acestui `locationId`.
+        } else {
+            // --- CLIENT VIEW ---
+            // Dacă nu există locationId, aducem doar programările personale ale userului
+            query = { clientId: userId };
+        }
+
+        // 3. Execută căutarea cu query-ul corect
+        const appointments = await Appointment.find(query)
             .sort({ date: 1, time: 1 })
-            .populate('locationId', 'name') // <--- ADD THIS LINE
+            .populate('clientId', 'fullName email phoneNumber') // <--- ADAUGĂ ACEASTĂ LINIE!
+            .populate('locationId', 'name')
             .populate('carId', 'make model plateNr')
             .populate('serviceIds', 'name price duration');
 
@@ -100,10 +121,14 @@ export const editAppointment = async (req: AuthRequest, res: Response) => {
 
         // SECURITY FIX: Match BOTH the appointmentId AND the clientId!
         const updatedAppointment = await Appointment.findOneAndUpdate(
-            { _id: appointmentId, clientId: req.user!.userId },
+            { _id: appointmentId },
             { $set: updates },
             { returnDocument: 'after', runValidators: true }
-        ).populate('carId', 'make model plateNr');
+        )
+        .populate('clientId', 'fullName email phoneNumber')
+        .populate('locationId', 'name')
+        .populate('carId', 'make model plateNr')
+        .populate('serviceIds', 'name price duration');
 
         if (!updatedAppointment) {
             return res.status(404).json({ message: "Programarea nu a fost găsită sau nu ai permisiunea de a o edita." });
@@ -124,7 +149,7 @@ export const deleteAppointment = async (req: AuthRequest, res: Response) => {
         if (!appointmentId || !mongoose.Types.ObjectId.isValid(appointmentId)) {
             return res.status(400).json({ message: "ID-ul programării este invalid." });
         }
-        
+
         const cancelledAppointment = await Appointment.findOneAndUpdate(
             { _id: appointmentId, clientId: req.user!.userId }, // SECURITY MATCH
             { status: 'cancelled' },

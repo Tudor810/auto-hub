@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react'; // Added useCallback
 import {
   View,
   Text,
@@ -7,26 +7,18 @@ import {
   TouchableOpacity,
   Platform,
   useWindowDimensions,
-  StatusBar
+  ActivityIndicator
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useFocusEffect, useRouter } from 'expo-router'; // Added useFocusEffect
+import { useCars } from '@/hooks/useCars'; 
+import { ICar } from '@auto-hub/shared/types/carTypes'; 
 
 // --- Types ---
-interface Car {
-  id: string;
-  make: string;
-  model: string;
-  plate: string;
-  itpDays: number;
-  rcaDays: number;
-  rovinietaDays: number; // Added based on your screenshot
-}
-
 interface DocumentAlert {
-  id: string; // Unique ID for the list
+  id: string;
   carId: string;
   carName: string;
   plate: string;
@@ -38,41 +30,63 @@ export default function DocumentsScreen() {
   const theme = useTheme<any>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  
+  // 1. FETCH REAL DATA (Make sure useCars exports refreshCars or fetchCars!)
+  const { cars, isLoading, refreshCars } = useCars();
+
+  // 2. TRIGGER REFRESH ON FOCUS
+  useFocusEffect(
+    useCallback(() => {
+      if (refreshCars) {
+        refreshCars();
+      }
+    }, [refreshCars])
+  );
 
   // Responsive Layout
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 800;
   const maxWidth = isDesktop ? 800 : '100%';
 
-  // --- Mock Data ---
-  // In reality, you will fetch this from your database/state
-  const mockCars: Car[] = [
-    { id: '1', make: 'Seat', model: 'Toledo', plate: 'B134ABC', itpDays: -5, rcaDays: -2, rovinietaDays: 14 },
-    { id: '2', make: 'BMW', model: 'Seria 3', plate: 'CJ22XYZ', itpDays: 120, rcaDays: 8, rovinietaDays: 300 },
-  ];
+  // HELPER FUNCTION: Safely calculate days left
+  const getDaysLeft = (dateInput: Date | string | null | undefined): number | null => {
+    if (!dateInput) return null; 
 
-  // --- Logic: Flatten, Filter, and Sort the Alerts ---
+    const targetDate = new Date(dateInput); 
+    const today = new Date();
+    
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    
+    return diffDays;
+  };
+
+  // FLATTEN & SORT ALERTS
   const criticalDocuments = useMemo(() => {
     const alerts: DocumentAlert[] = [];
 
-    mockCars.forEach((car) => {
-      const carName = `${car.make} ${car.model}`;
+    if (cars && cars.length > 0) {
+      cars.forEach((car: ICar) => {
+        const carName = `${car.make} ${car.model}`;
 
-      // Only push documents that have 30 days or less remaining
-      if (car.itpDays <= 30) {
-        alerts.push({ id: `${car.id}-itp`, carId: car.id, carName, plate: car.plate, docType: 'ITP', daysLeft: car.itpDays });
-      }
-      if (car.rcaDays <= 30) {
-        alerts.push({ id: `${car.id}-rca`, carId: car.id, carName, plate: car.plate, docType: 'RCA', daysLeft: car.rcaDays });
-      }
-      if (car.rovinietaDays <= 30) {
-        alerts.push({ id: `${car.id}-rov`, carId: car.id, carName, plate: car.plate, docType: 'Rovinietă', daysLeft: car.rovinietaDays });
-      }
-    });
+        const itpDays = getDaysLeft(car.itpDate);
+        const rcaDays = getDaysLeft(car.rcaDate);
+        const rovinietaDays = getDaysLeft(car.rovinietaDate);
 
-    // Sort by most urgent (lowest days first)
+        if (itpDays !== null && itpDays <= 30) {
+          alerts.push({ id: `${car._id}-itp`, carId: car._id, carName, plate: car.plateNr, docType: 'ITP', daysLeft: itpDays });
+        }
+        if (rcaDays !== null && rcaDays <= 30) {
+          alerts.push({ id: `${car._id}-rca`, carId: car._id, carName, plate: car.plateNr, docType: 'RCA', daysLeft: rcaDays });
+        }
+        if (rovinietaDays !== null && rovinietaDays <= 30) {
+          alerts.push({ id: `${car._id}-rov`, carId: car._id, carName, plate: car.plateNr, docType: 'Rovinietă', daysLeft: rovinietaDays });
+        }
+      });
+    }
+
     return alerts.sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [mockCars]);
+  }, [cars]); 
 
   // --- Status Theme Helper ---
   const getStatusTheme = (days: number) => {
@@ -94,10 +108,10 @@ export default function DocumentsScreen() {
   };
 
   const navigation = useNavigation();
-  
+  const router = useRouter();
+
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -138,7 +152,11 @@ export default function DocumentsScreen() {
 
           {/* DOCUMENTS LIST */}
           <View style={[styles.listContainer, !isDesktop && { paddingHorizontal: 20 }]}>
-            {criticalDocuments.length > 0 ? (
+            {isLoading ? (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                </View>
+            ) : criticalDocuments.length > 0 ? (
               criticalDocuments.map((doc) => {
                 const status = getStatusTheme(doc.daysLeft);
 
@@ -150,19 +168,19 @@ export default function DocumentsScreen() {
                       {
                         backgroundColor: theme.colors.surface,
                         borderColor: theme.colors.border?.light || '#F3F4F6',
-                        borderLeftColor: status.color, // The thick colored left border
+                        borderLeftColor: status.color, 
                       }
                     ]}
                     activeOpacity={0.7}
-                    onPress={() => console.log('Navigate to Car Details for ID:', doc.carId)}
+                    onPress={() => router.push({
+                      pathname: "/(client)/add-car",
+                      params: {id: doc.carId, origin: 'documents'}
+                    })}
                   >
-
-                    {/* Icon Box */}
                     <View style={[styles.iconBox, { backgroundColor: status.iconBg }]}>
                       <Ionicons name="warning-outline" size={24} color={status.color} />
                     </View>
 
-                    {/* Text Details */}
                     <View style={styles.textContainer}>
                       <Text style={[styles.docType, { color: theme.colors.text.main }]}>{doc.docType}</Text>
                       <Text style={[styles.carInfo, { color: theme.colors.text.muted }]}>
@@ -170,7 +188,6 @@ export default function DocumentsScreen() {
                       </Text>
                     </View>
 
-                    {/* Status Badge */}
                     <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
                       <Text style={[styles.statusText, { color: status.color }]}>
                         {status.text}
@@ -181,7 +198,6 @@ export default function DocumentsScreen() {
                 );
               })
             ) : (
-              /* EMPTY STATE: Everything is safe! */
               <View style={styles.emptyState}>
                 <View style={[styles.emptyIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                   <Ionicons name="checkmark-circle-outline" size={48} color="#10B981" />
@@ -203,103 +219,35 @@ export default function DocumentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    alignItems: 'center',
-  },
-  contentWrapper: {
-    flex: 1,
-    width: '100%',
-  },
-  headerRow: {
-    marginBottom: 24,
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  listContainer: {
-    width: '100%',
-    gap: 16, // Adds space between the cards
-  },
+  mainContainer: { flex: 1 },
+  scrollContent: { alignItems: 'center' },
+  contentWrapper: { flex: 1, width: '100%' },
+  headerRow: { marginBottom: 24 },
+  pageTitle: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
+  pageSubtitle: { fontSize: 15, fontWeight: '500' },
+  listContainer: { width: '100%', gap: 16 },
   docCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderLeftWidth: 5, // Creates that distinct left edge from your screenshot
+    borderLeftWidth: 5, 
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8 },
       android: { elevation: 2 },
       web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.03)' } as any,
     }),
   },
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  docType: {
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  carInfo: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-  },
-  emptyIconBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  emptyStateSub: {
-    fontSize: 15,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    lineHeight: 22,
-  },
-  backButton: {
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-    // On web, adding a pointer cursor makes it feel native
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
-  },
+  iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  textContainer: { flex: 1 },
+  docType: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
+  carInfo: { fontSize: 14, fontWeight: '500' },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginLeft: 10 },
+  statusText: { fontSize: 13, fontWeight: '700' },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
+  emptyIconBox: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyStateTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
+  emptyStateSub: { fontSize: 15, textAlign: 'center', paddingHorizontal: 40, lineHeight: 22 },
+  backButton: { marginBottom: 16, alignSelf: 'flex-start', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
 });

@@ -104,7 +104,7 @@ export default function GoogleSignInButton({ setError }: { setError: (message: s
         />
       )}
     >
-      Continue with Google
+      Continuă cu Google
     </Button>
   );
 }

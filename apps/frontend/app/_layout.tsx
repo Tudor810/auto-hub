@@ -5,9 +5,9 @@ import { darkTheme } from "../utils/themes";
 import { Platform, useColorScheme } from "react-native";
 import { AuthProvider } from "@/context/AuthContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { StatusBar } from "expo-status-bar";
 import * as SystemUi from 'expo-system-ui'
 import { useEffect } from "react";
+import { StatusBar } from "react-native";
 
 export default function RootLayout() {
 
@@ -44,7 +44,7 @@ export default function RootLayout() {
   return (
     <PaperProvider theme={combineTheme}>
       <AuthProvider>
-        <StatusBar style="light" />
+        <StatusBar barStyle={colorScheme === "dark" ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
         <Stack screenOptions={{ headerShown: false }} />
       </AuthProvider>
     </PaperProvider>)

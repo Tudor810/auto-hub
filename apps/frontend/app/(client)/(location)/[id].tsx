@@ -54,9 +54,27 @@ export default function LocationDetailsScreen() {
     const maxWidth = isDesktop ? 800 : '100%';
 
     const handleOpenMaps = () => {
-        if (!locationData?.address) return;
-        const query = encodeURIComponent(locationData.address);
-        Linking.openURL(`http://googleusercontent.com/maps.google.com/maps?q=${query}`);
+        const lat = locationData?.coordinates?.latitude;
+        const lng = locationData?.coordinates?.longitude;
+
+        // Encode the name so spaces and special characters don't break the URL
+        const label = encodeURIComponent(locationData?.name || "Locație");
+
+        if (!lat || !lng) return;
+
+        const latLng = `${lat},${lng}`;
+
+        // Magically select the right URL format based on the user's device!
+        const url = Platform.select({
+            ios: `maps:0,0?q=${label}@${latLng}`,
+            android: `geo:0,0?q=${latLng}(${label})`,
+            web: `https://www.google.com/maps/search/?api=1&query=${latLng}`
+        });
+
+        if (url) {
+            // openURL works on the web too—it just opens a new browser tab!
+            Linking.openURL(url);
+        }
     };
 
     if (isLoading) {
@@ -75,9 +93,9 @@ export default function LocationDetailsScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
-                    styles.scrollContent, 
+                    styles.scrollContent,
                     // Add enough padding so the sticky bar doesn't cover the last item
-                    { paddingBottom: selectedServices.length > 0 ? 120 : 40 }, 
+                    { paddingBottom: selectedServices.length > 0 ? 120 : 40 },
                     isDesktop && { paddingBottom: selectedServices.length > 0 ? 120 : 40 }
                 ]}
             >
@@ -91,14 +109,14 @@ export default function LocationDetailsScreen() {
                     <View style={styles.heroContainer}>
                         <Image source={{ uri: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=1000&auto=format&fit=crop' }} style={styles.heroImage} />
                         <View style={styles.heroOverlay} />
-                        
+
                         <TouchableOpacity style={[styles.backButton, { top: Math.max(insets.top + 16, 16) }]} onPress={() => router.back()} activeOpacity={0.8}>
                             <Ionicons name="arrow-back" size={24} color={"#F9FAFB"} />
                         </TouchableOpacity>
-                        
+
                         <View style={styles.heroTextContainer}>
                             <View style={styles.verifiedRow}>
-                                <Text style={[styles.heroTitle, { color: "#F9FAFB"}]} numberOfLines={2}>{locationData.name}</Text>
+                                <Text style={[styles.heroTitle, { color: "#F9FAFB" }]} numberOfLines={2}>{locationData.name}</Text>
                                 <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} style={{ marginLeft: 8, marginTop: 4 }} />
                             </View>
                             <View style={styles.ratingRow}>
@@ -217,7 +235,7 @@ export default function LocationDetailsScreen() {
                 <View style={[styles.bottomBarWrapper, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border.medium }]}>
                     {/* Inner container to constrain width on desktop exactly like the main wrapper */}
                     <View style={[styles.bottomBarInner, { maxWidth: maxWidth, paddingBottom: Math.max(insets?.bottom || 0, 16) }]}>
-                        
+
                         <View style={styles.bottomBarLeft}>
                             <Text style={[styles.selectedCountText, { color: theme.colors.text.muted }]}>
                                 {selectedServices.length} {selectedServices.length === 1 ? 'serviciu selectat' : 'servicii selectate'}
@@ -233,19 +251,20 @@ export default function LocationDetailsScreen() {
                             onPress={() => {
 
                                 const serviceIdsString = selectedServices.map(s => s._id).join(',');
-                                
+
                                 router.push({
-                                pathname: '/(client)/add-appointment',
-                                params : {
-                                    locationId: id,
-                                    serviceIds : serviceIdsString
-                                }
-                            })}}
+                                    pathname: '/(client)/add-appointment',
+                                    params: {
+                                        locationId: id,
+                                        serviceIds: serviceIdsString
+                                    }
+                                })
+                            }}
                         >
                             <Ionicons name="cart-outline" size={20} color={"#F9FAFB"} style={{ marginRight: 8 }} />
                             <Text style={[styles.continueButtonText, { color: "#F9FAFB" }]}>Continuă</Text>
                         </TouchableOpacity>
-                        
+
                     </View>
                 </View>
             )}
@@ -294,7 +313,7 @@ const makeStyles = (theme: any, insets?: any) => StyleSheet.create({
         padding: 16,
         borderRadius: 16,
         borderWidth: 1.5,
-        elevation: 0, 
+        elevation: 0,
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 3 },
             web: { boxShadow: '0px 2px 6px rgba(0,0,0,0.03)' } as any,

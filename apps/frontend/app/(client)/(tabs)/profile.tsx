@@ -59,8 +59,7 @@ export default function ProfileScreen() {
   return (
     // Outer container fills the screen and centers the content on Web
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
-      
+
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, isDesktop && { paddingBottom: 40 }]}
@@ -180,7 +179,7 @@ export default function ProfileScreen() {
                   title="Magic Search" 
                   iconColor="#8B5CF6" 
                   iconBgColor="#F5F3FF"
-                  onPress={() => console.log('Navigate to Partner Registration')}
+                  onPress={() => router.push("/(client)/magic-search")}
                 />
               </View>
             </View>

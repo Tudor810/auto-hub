@@ -32,7 +32,8 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
   const tagBorderColor = theme.dark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB';
 
   const getDaysLeft = (date?: Date | string | null): number | null => {
-    if (!date) return 0;
+
+    if (!date) return null;
     // We wrap it in new Date() just in case the backend sends it as an ISO string instead of a JS Date object
     return differenceInDays(new Date(date), new Date());
   };
@@ -51,7 +52,7 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
   };
 
   const itpDays = getDaysLeft(car.itpDate);
-  const rcaDays = getDaysLeft(car.rcaDate);
+  const rcaDays = getDaysLeft(car.rcaDate );
 
   const itpStatus = getStatusTheme(itpDays);
   const rcaStatus = getStatusTheme(rcaDays);
@@ -64,6 +65,7 @@ export default function CarCard({ car, onDelete, onEdit }: CarCardProps) {
   const attentionColor = isDanger ? '#EF4444' : '#FBBF24';
   const cardBorderColor = needsAttention ? attentionColor : (theme.colors.border?.light || '#E5E7EB');
 
+  
   return (
     <View style={styles.cardWrapper}>
       <View

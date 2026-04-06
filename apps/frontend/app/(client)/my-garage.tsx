@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   useWindowDimensions,
-  StatusBar
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,7 +33,6 @@ export default function MyGarageScreen() {
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -98,7 +96,7 @@ export default function MyGarageScreen() {
                   onDelete={() => deleteCar(car._id)}
                   onEdit={() => router.push({
                     pathname: '/(client)/add-car',
-                    params: {id: car._id}
+                    params: {id: car._id, origin: 'garage'}
                   })}
                 />
               ))

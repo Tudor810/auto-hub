@@ -12,7 +12,6 @@ export default function Index() {
             <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size='large'/></View>
         );
     }
-
     if (!user) {
         return <Redirect href="/(auth)/login" />;
     }

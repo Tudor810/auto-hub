@@ -1,5 +1,12 @@
 // packages/shared/types/user.ts
 
+interface INotificationPreferences {
+  appointments: boolean;
+  documents: boolean;
+  promotions: boolean;
+  service: boolean;
+}
+
 export interface IUserBase {
   _id: string; 
   role: 'customer' | 'provider' | null;
@@ -9,6 +16,7 @@ export interface IUserBase {
   termsAccepted: boolean;
   createdAt: Date | string; 
   updatedAt: Date | string;
+  notificationPreferences?: INotificationPreferences;
 }
 
 export interface ISignUpRequest extends Omit<IUserBase, '_id' | 'createdAt' | 'updatedAt'> {
@@ -24,7 +32,7 @@ export interface IAuthUser {
   fullName: string;
   role: 'customer' | 'provider' | null;  
   rating?: number;
-  activeAppointments?: number
+  notificationPreferences?: INotificationPreferences | undefined; 
 }
 
 export interface IAuthSuccessResponse {

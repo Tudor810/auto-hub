@@ -1,7 +1,7 @@
 // backend/src/routes/auth.ts
 import { Router } from 'express';
 import { authenticateToken} from '../middleware/authMiddleware.js';
-import { handleSignUp, handleLogin, handleGoogleLogin, handleEditRole, handleLogout, getUserData } from '../controllers/authController.js';
+import { handleSignUp, handleLogin, handleGoogleLogin, handleEditRole, handleLogout, getUserData, handleForgotPassword, handleSetPreferences } from '../controllers/authController.js';
 
 const router = Router();
 
@@ -17,5 +17,9 @@ router.put('/update-role', authenticateToken, handleEditRole);
 router.post('/logout', handleLogout);
 
 router.get('/me', authenticateToken, getUserData);
+
+router.get("/forgot-password", handleForgotPassword);
+
+router.put("/preferences", authenticateToken, handleSetPreferences);
 
 export default router
