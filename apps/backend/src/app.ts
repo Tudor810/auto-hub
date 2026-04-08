@@ -11,6 +11,7 @@ import { corsOptions } from './config/cors.js';
 import connectDB from './config/db.js';
 
 import routes from './routes/index.js';
+import { initCronJobs } from './jobs/documentAlerts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,5 +37,7 @@ app.listen(PORT, () => {
   console.log(`🚀 AutoHub Server Live`);
   console.log(`Mode: ${env.nodeEnv}`);
   console.log(`Port: ${env.port}`);
+
+  initCronJobs();
 });
 

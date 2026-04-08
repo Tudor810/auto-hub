@@ -7,6 +7,8 @@ interface EnvConfig {
     mongoUri: string;
     jwtToken: string;
     googleWebClientId: string;
+    emailUser: string;
+    emailAppPassword: string;
 }
 
 export const env : EnvConfig = {
@@ -15,6 +17,8 @@ export const env : EnvConfig = {
   nodeEnv: process.env.NODE_ENV || 'development',
   jwtToken: process.env.JWT_TOKEN || 'super_secret_jwt_token_for_autohub',
   googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID || '',
+  emailUser: process.env.EMAIL_USER || '',
+  emailAppPassword: process.env.EMAIL_APP_PASSWORD || ''
 };
 
 // Safety check: Ensure essential variables exist

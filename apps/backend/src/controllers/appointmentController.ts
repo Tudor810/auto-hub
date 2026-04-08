@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Appointment from '../models/Appointment';
 import Service from '../models/Service'; // Needed to securely calculate totals
 import { AuthRequest } from '../middleware/authMiddleware';
-
+import { sendNotification } from '../utils/notifications';
 // --- HELPER ---
 const safeParseDuration = (duration: any): number => {
     if (!duration) return 0;
@@ -124,16 +124,29 @@ export const editAppointment = async (req: AuthRequest, res: Response) => {
             { _id: appointmentId },
             { $set: updates },
             { returnDocument: 'after', runValidators: true }
-        )
-        .populate('clientId', 'fullName email phoneNumber')
-        .populate('locationId', 'name')
-        .populate('carId', 'make model plateNr')
-        .populate('serviceIds', 'name price duration');
+        ).populate('clientId', 'fullName email phoneNumber')
+         .populate('locationId', 'name')
+         .populate('carId', 'make model plateNr')
+         .populate('serviceIds', 'name price duration');
 
         if (!updatedAppointment) {
             return res.status(404).json({ message: "Programarea nu a fost găsită sau nu ai permisiunea de a o edita." });
         }
 
+        const newStatus = updates.status;
+        if (newStatus && newStatus === "confirmed") {
+
+
+            const clientData = updatedAppointment.clientId as any;
+            const locationData = updatedAppointment.locationId as any;
+
+            await sendNotification(
+                clientData._id,
+                'appointments', 
+                'Programare Confirmată! ✅',
+                `Programarea ta la ${locationData.name} a fost confirmată.`
+            );
+        }
         return res.status(200).json(updatedAppointment);
     } catch (error) {
         console.error("Eroare la actualizarea programării:", error);

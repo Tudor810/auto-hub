@@ -6,6 +6,9 @@ export interface IUserDocument extends Omit<IUserBase, '_id'>, Document {
   password?: string; // Strictly stays on the backend, optional for OAuth users
   googleId?: string; // Google OAuth ID
   role: 'customer' | 'provider' | null; // Allow null for users who haven't selected role yet
+  pushToken?: string;
+  resetToken?: string;
+  resetTokenExpiry?: Number
 }
 
 // 2. The Schema uses the backend-specific interface
@@ -23,7 +26,10 @@ const userSchema = new Schema<IUserDocument>(
         documents: { type: Boolean, default: true },
         promotions: { type: Boolean, default: false },
         service: { type: Boolean, default: true },
-    }
+    },
+    pushToken: {type: String, required: false},
+    resetToken: { type: String, required: false },
+    resetTokenExpiry: { type: Number, required: false },
   },
   { timestamps: true }
 );

@@ -1,13 +1,14 @@
 // backend/src/routes/auth.ts
-import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto'
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js'; 
+import User from '../models/User.js';
 import { env } from '../config/env.js';
 import type { ISignUpRequest, IAuthUser, IAuthSuccessResponse, ILoginRequest, IUserUpdateResponse } from '@auto-hub/shared/types/userTypes';
 import { OAuth2Client } from 'google-auth-library';
-import { authenticateToken, AuthRequest } from '../middleware/authMiddleware.js';
+import { AuthRequest } from '../middleware/authMiddleware.js';
 import { Response, Request } from 'express';
+import { sendEmail } from '../utils/email.js';
 
 const client = new OAuth2Client(env.googleWebClientId);
 
@@ -285,17 +286,102 @@ export const handleSetPreferences = async (req: AuthRequest, res: Response) => {
             { $set: { notificationPreferences: preferences } },
             { returnDocument: 'after' }
         );
-        
+
         if (!updatedUser) {
             return res.status(404).json({ message: "Utilizatorul nu a fost găsit." });
         }
 
         res.status(200).json({ message: "Preferințe salvate cu succes.", user: updatedUser });
-    } catch(error) {
+    } catch (error) {
         res.status(500).json({ message: "Eroare la salvarea preferințelor." });
     }
 }
 
-export const handleForgotPassword = (req: Request, res: Response) => {
-    // Aici va veni logica pentru trimitere email de resetare
+export const updatePushToken = async (req: AuthRequest, res: Response) => {
+    try {
+        const { pushToken } = req.body;
+        const userId = req.user?.userId;
+
+        await User.findByIdAndUpdate(userId, { pushToken });
+
+        res.status(200).json({ message: "Push token updated successfully." });
+    } catch (error) {
+        console.error("Error updating push token:", error);
+        res.status(500).json({ message: "Server error." });
+    }
+};
+
+export const handleForgotPassword = async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    // 1. Find user in your database
+    const user = await User.findOne({ email });
+    if (!user) {
+        return res.status(200).json({ message: 'Dacă contul există, link-ul de resetare a parolei a fost trimis. Verifică și folderul de Spam.' });
+    }
+
+    // 2. Generate a secure token and expiration (e.g., 1 hour)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = Date.now() + 3600000; // 1 hour from now
+
+    // 3. Save token to the user's database record
+    await User.updateOne({ email }, { resetToken, tokenExpiry });
+
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = tokenExpiry;
+    await user.save();
+
+    // const resetLink = `autohub://reset-password?token=${resetToken}`;
+    const resetLink = `localhost:5000://reset-password?token=${resetToken}`;
+    
+    const emailText = `Ai cerut resetarea parolei. Copiază acest link în browser sau apasă pe el: ${resetLink}`;
+    const emailHtml = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+        <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0;">Auto Hub</h1>
+        </div>
+        
+        <div style="padding: 30px; border: 1px solid #eeeeee; border-top: none;">
+            <h2 style="color: #2c3e50;">Resetare Parolă</h2>
+            <p>Salutare,</p>
+            <p>Am primit o cerere de resetare a parolei pentru contul tău Auto Hub. Dacă nu tu ai făcut această solicitare, poți ignora acest mesaj în siguranță.</p>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="${resetLink}" 
+                style="background-color: #007AFF; color: white; padding: 14px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                Resetează Parola
+                </a>
+            </div>
+            
+            <p style="font-size: 0.9em; color: #666;">
+                <strong>Notă:</strong> Acest link este valabil timp de 60 de minute.
+            </p>
+            
+            <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 30px 0;">
+            
+            <p style="font-size: 0.85em; color: #999;">
+                💡 <strong>Sfat:</strong> Dacă nu găsești email-ul în Inbox, te rugăm să verifici folderul <strong>Spam</strong> sau <strong>Promotions</strong>. 
+                Dacă l-ai găsit acolo, marchează-l ca "Not Spam" pentru a primi notificările viitoare (programări, facturi) direct în Inbox.
+            </p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; font-size: 0.8em; color: #aaa;">
+            © 2026 Auto Hub App. Toate drepturile rezervate.
+        </div>
+    </div>
+    `;
+
+    await sendEmail({
+        to: user.email,
+        subject: "Resetare Parolă - Auto Hub",
+        text: emailText,
+        html: emailHtml
+    });
+
+    res.status(200).json({ message: 'Dacă contul există, link-ul de resetare a parolei a fost trimis. Verifică și folderul de Spam.' });
+}
+
+
+export const handleResetPassword = (req: Request, res: Response) => {
+
 }
