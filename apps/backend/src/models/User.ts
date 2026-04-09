@@ -7,8 +7,8 @@ export interface IUserDocument extends Omit<IUserBase, '_id'>, Document {
   googleId?: string; // Google OAuth ID
   role: 'customer' | 'provider' | null; // Allow null for users who haven't selected role yet
   pushToken?: string;
-  resetToken?: string;
-  resetTokenExpiry?: Number
+  resetToken?: string | undefined;
+  resetTokenExpiry?: Number | undefined
 }
 
 // 2. The Schema uses the backend-specific interface

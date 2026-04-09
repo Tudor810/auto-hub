@@ -45,7 +45,8 @@ export const checkExpiringDocuments = async () => {
                         userId,
                         'documents',
                         'ITP-ul expiră curând! ⚠️',
-                        `ITP-ul pentru ${car.plateNr} expiră în ${days} zi(le). Programează-te la un service.`
+                        `ITP-ul pentru ${car.plateNr} expiră în ${days} zi(le). Programează-te la un service.`,
+                        {route: '/(client)/my-garage'}
                     );
                 }
 
@@ -55,7 +56,8 @@ export const checkExpiringDocuments = async () => {
                         userId,
                         'documents',
                         'Asigurarea RCA expiră! 🛡️',
-                        `RCA-ul pentru ${car.plateNr} expiră în ${days} zi(le). Nu uita să o reînnoiești.`
+                        `RCA-ul pentru ${car.plateNr} expiră în ${days} zi(le). Nu uita să o reînnoiești.`,
+                        {route: '/(client)/my-garage'}
                     );
                 }
 
@@ -65,7 +67,8 @@ export const checkExpiringDocuments = async () => {
                         userId,
                         'documents',
                         'Rovinieta expiră! 🛣️',
-                        `Rovinieta pentru ${car.plateNr} expiră în ${days} zi(le).`
+                        `Rovinieta pentru ${car.plateNr} expiră în ${days} zi(le).`,
+                        {route: '/(client)/my-garage'}
                     );
                 }
             });

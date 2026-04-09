@@ -8,35 +8,35 @@ export const sendNotification = async (
     userId: string, 
     category: 'appointments' | 'documents' | 'promotions' | 'service', 
     title: string, 
-    body: string
+    body: string,
+    data?: Record<string, any> // <-- 1. NOU: Am adăugat parametrul opțional 'data'
 ) => {
     const user = await User.findById(userId);
 
-    if (!user || !user.pushToken) return; // User doesn't have the app installed/allowed
+    if (!user || !user.pushToken) return; // Utilizatorul nu are aplicația
 
-    // --- 🚨 THE MAGIC: CHECK PREFERENCES 🚨 ---
-    // If the user turned off this specific toggle in the UI, silently abort!
+    // Verificăm preferințele
     if (user.notificationPreferences && user.notificationPreferences[category] === false) {
         console.log(`User ${user.email} opted out of ${category} notifications.`);
         return; 
     }
 
-    // Check if it's a valid Expo token
+    // Verificăm dacă token-ul este valid
     if (!Expo.isExpoPushToken(user.pushToken)) {
         console.error(`Push token ${user.pushToken} is not a valid Expo push token`);
         return;
     }
 
-    // Create the message
+    // Creăm mesajul
     const messages = [{
         to: user.pushToken,
-        sound: 'default',
+        sound: 'default' as const, 
         title: title,
         body: body,
-        data: { route: '/(client)/(tabs)/calendar' }, // Data to handle when user taps the notification
+        data: data || {}, // <-- 2. NOU: Folosim datele primite, sau un obiect gol dacă nu primim nimic
     }];
 
-    // Send it to Expo
+    // Trimitem către Expo
     try {
         let chunks = expo.chunkPushNotifications(messages);
         for (let chunk of chunks) {

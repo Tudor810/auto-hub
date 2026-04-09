@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import Appointment from '../models/Appointment';
+import Location from '../models/Location'
 import Service from '../models/Service'; // Needed to securely calculate totals
 import { AuthRequest } from '../middleware/authMiddleware';
 import { sendNotification } from '../utils/notifications';
@@ -97,6 +98,31 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
             { path: 'serviceIds', select: 'name price duration' }
         ]);
 
+        try {
+            // Aducem locația și populăm compania pentru a afla cine e "șeful"
+            const location = await Location.findById(locationId).populate('companyId');
+
+            if (location && location.companyId) {
+                // AICI TREBUIE SĂ ADAPTEZI ÎN FUNCȚIE DE SCHEMA TA `Company`
+                // Presupunem că pe modelul Company ai un câmp `userId` sau `ownerId`
+                const company = location.companyId as any;
+                const ownerId = company.userId || company.ownerId;
+
+                if (ownerId) {
+                    await sendNotification(
+                        ownerId.toString(),
+                        'appointments', // Folosim categoria 'appointments'
+                        'Programare Nouă! 📅',
+                        `Ai primit o nouă cerere de programare la ${location.name} pentru ${date} la ${time}.`,
+                        {route: `/(service)/(tabs)/calendar?id=${locationId}&date=${date}`}
+                    );
+                }
+            }
+        } catch (notifError) {
+            // Nu oprim request-ul dacă notificarea pică, doar o logăm
+            console.error("Eroare la trimiterea notificării către service:", notifError);
+        }
+
         return res.status(201).json(savedAppointment);
     } catch (error) {
         console.error("Eroare la crearea programării:", error);
@@ -125,9 +151,9 @@ export const editAppointment = async (req: AuthRequest, res: Response) => {
             { $set: updates },
             { returnDocument: 'after', runValidators: true }
         ).populate('clientId', 'fullName email phoneNumber')
-         .populate('locationId', 'name')
-         .populate('carId', 'make model plateNr')
-         .populate('serviceIds', 'name price duration');
+            .populate('locationId', 'name')
+            .populate('carId', 'make model plateNr')
+            .populate('serviceIds', 'name price duration');
 
         if (!updatedAppointment) {
             return res.status(404).json({ message: "Programarea nu a fost găsită sau nu ai permisiunea de a o edita." });
@@ -136,15 +162,15 @@ export const editAppointment = async (req: AuthRequest, res: Response) => {
         const newStatus = updates.status;
         if (newStatus && newStatus === "confirmed") {
 
-
             const clientData = updatedAppointment.clientId as any;
             const locationData = updatedAppointment.locationId as any;
 
             await sendNotification(
                 clientData._id,
-                'appointments', 
+                'appointments',
                 'Programare Confirmată! ✅',
-                `Programarea ta la ${locationData.name} a fost confirmată.`
+                `Programarea ta la ${locationData.name} a fost confirmată.`,
+                {route: '/(client)/(tabs)/program'}
             );
         }
         return res.status(200).json(updatedAppointment);

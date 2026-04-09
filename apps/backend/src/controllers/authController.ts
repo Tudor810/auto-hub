@@ -333,7 +333,9 @@ export const handleForgotPassword = async (req: Request, res: Response) => {
 
     // const resetLink = `autohub://reset-password?token=${resetToken}`;
     const resetLink = `localhost:5000://reset-password?token=${resetToken}`;
-    
+    const mobileLink = `autohub://reset-password?token=${resetToken}`;
+    const webLink = `http://localhost:8081/reset-password?token=${resetToken}`;
+
     const emailText = `Ai cerut resetarea parolei. Copiază acest link în browser sau apasă pe el: ${resetLink}`;
     const emailHtml = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
@@ -347,10 +349,11 @@ export const handleForgotPassword = async (req: Request, res: Response) => {
             <p>Am primit o cerere de resetare a parolei pentru contul tău Auto Hub. Dacă nu tu ai făcut această solicitare, poți ignora acest mesaj în siguranță.</p>
             
             <div style="text-align: center; margin: 40px 0;">
-                <a href="${resetLink}" 
-                style="background-color: #007AFF; color: white; padding: 14px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                Resetează Parola
-                </a>
+                <p>Dacă ești pe telefon, apasă aici:</p>
+                <a href="${mobileLink}">Resetează în Aplicație</a>
+                
+                <p>Dacă ești pe calculator, apasă aici:</p>
+                <a href="${webLink}">Resetează în Browser</a>
             </div>
             
             <p style="font-size: 0.9em; color: #666;">
@@ -382,6 +385,34 @@ export const handleForgotPassword = async (req: Request, res: Response) => {
 }
 
 
-export const handleResetPassword = (req: Request, res: Response) => {
+export const handleResetPassword = async (req: Request, res: Response) => {
+    try {
+        const data = req.body;
 
+        // 1. Găsim utilizatorul după token ȘI verificăm să nu fie expirat
+        const user = await User.findOne({
+            resetToken: data.token,
+            resetTokenExpiry: { $gt: Date.now() } // Verificăm ca timpul curent să nu fi depășit expiry
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Link-ul de resetare este invalid sau a expirat." });
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(data.newPassword, saltRounds);
+
+        // 3. Actualizăm utilizatorul și ștergem token-ul de resetare
+        user.password = hashedPassword;
+        user.resetToken = undefined;
+        user.resetTokenExpiry = undefined;
+        
+        await user.save();
+
+        res.status(200).json({ message: "Parola a fost resetată cu succes!" });
+
+    } catch (error) {
+        console.error('Reset Password Error:', error);
+        res.status(500).json({ message: "A apărut o eroare neașteptată la server." });
+    }
 }
