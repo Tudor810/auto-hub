@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
       });
 
       if (data.ok) {
-        setSuccessMessage('Dacă adresa de email există în sistem, vei primi un link pentru resetarea parolei în câteva momente.');
+        setSuccessMessage('Dacă adresa de email există în sistem, vei primi un link pentru resetarea parolei în câteva momente. Dacă nu găsești emailul, verifică folderul Spam.');
         setEmail(''); // Curățăm câmpul după succes
         setSubmitPressed(false); // Resetăm starea butonului
       } else {

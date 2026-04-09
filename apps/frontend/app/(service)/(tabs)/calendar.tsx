@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Platform, 
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
   useWindowDimensions,
   ActivityIndicator,
   Alert,
@@ -21,15 +21,14 @@ import {
 import { ro } from 'date-fns/locale';
 import { useBusiness } from '@/context/BusinessContext';
 import { useLocalSearchParams } from 'expo-router';
-import { ILocation } from '@auto-hub/shared/types/locationTypes';
-import { useAppointments } from '@/hooks/useAppointments'; 
+import { useAppointments } from '@/hooks/useAppointments';
 import { IAppointmentResponse } from '@auto-hub/shared/types/appointmentTypes';
 
 export default function CalendarScreen() {
   const theme = useTheme<any>();
   const { width } = useWindowDimensions();
   const { locations } = useBusiness();
-  const { id } = useLocalSearchParams();
+  const { id, date } = useLocalSearchParams();
 
   // --- LOCATION STATE ---
   const [activeLocationId, setActiveLocationId] = useState<string | null>(() => {
@@ -50,26 +49,51 @@ export default function CalendarScreen() {
 
   // --- FETCH APPOINTMENTS FOR ACTIVE LOCATION ---
   const { appointments, isLoading, updateAppointment } = useAppointments(activeLocationId);
-  
+
   // --- CALENDAR LOGIC ---
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    if (date) {
+      const parsedDate = new Date(date as string);
+      if (!isNaN(parsedDate.getTime())) return parsedDate;
+    }
+    return new Date();
+  });
+
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (date) {
+      const parsedDate = new Date(date as string);
+      if (!isNaN(parsedDate.getTime())) return parsedDate;
+    }
+    return new Date();
+  });
+
+  useEffect(() => {
+    if (date) {
+      const parsedDate = new Date(date as string);
+
+      // Verificăm dacă data este validă pentru a nu bloca aplicația
+      if (!isNaN(parsedDate.getTime())) {
+        setSelectedDate(parsedDate);
+        setCurrentMonth(parsedDate); // Mutăm și luna calendarului pentru a arăta acea dată!
+      }
+    }
+  }, [date]);
 
   const getCalendarDays = (month: Date) => {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); 
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: startDate, end: endDate });
   };
 
   const weekDays = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'].map(
     (day, index) => {
-      const date = new Date(2024, 0, index + 1); 
+      const date = new Date(2024, 0, index + 1);
       return format(date, 'eeeeee', { locale: ro }).toLowerCase();
     }
   );
-  
+
   const calendarDays = getCalendarDays(currentMonth);
   const weeks = [];
   for (let i = 0; i < calendarDays.length; i += 7) {
@@ -83,7 +107,7 @@ export default function CalendarScreen() {
   // --- FILTER APPOINTMENTS FOR SELECTED DATE ---
   const selectedAppointments = appointments.filter(app => {
     if (!app.date) return false;
-    const appDateStr = app.date.split('T')[0]; 
+    const appDateStr = app.date.split('T')[0];
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     return appDateStr === selectedDateStr;
   });
@@ -249,7 +273,7 @@ export default function CalendarScreen() {
               <View style={styles.appointmentList}>
                 {selectedAppointments.map(app => {
                   const conf = getStatusConfig(app.status);
-                  
+
                   return (
                     <View key={app._id} style={[styles.appointmentCard, { backgroundColor: isDesktop ? theme.colors.background : theme.colors.surface, borderColor: theme.colors.border?.light || '#E5E7EB' }]}>
 
@@ -286,7 +310,7 @@ export default function CalendarScreen() {
                                 activeOpacity={0.7}
                               >
                                 <Ionicons name="call" size={12} color={theme.colors.primary} />
-                                <Text style={[styles.contactTextBlue, {color: theme.colors.primary}]}>{app.clientId.phoneNumber}</Text>
+                                <Text style={[styles.contactTextBlue, { color: theme.colors.primary }]}>{app.clientId.phoneNumber}</Text>
                               </TouchableOpacity>
                             )}
 
@@ -409,7 +433,7 @@ const styles = StyleSheet.create({
   contactPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(150,150,150,0.08)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   contactText: { fontSize: 12, fontWeight: '500' },
   contactTextBlue: { fontSize: 12, fontWeight: '600' },
-  
+
   // New Appointment Card Styles
   appointmentList: { gap: 16 },
   appointmentCard: { padding: 16, borderRadius: 16, borderWidth: 1, ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }, web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.05)' } as any }) },
@@ -420,7 +444,7 @@ const styles = StyleSheet.create({
 
   clientDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   carMakeText: { fontSize: 16, fontWeight: '600' },
-  
+
   // Plate Badge dynamically updated inline, removed hardcoded colors here
   plateBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   plateText: { fontSize: 13, fontWeight: '700' },

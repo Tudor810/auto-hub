@@ -194,7 +194,9 @@ export default function LoginScreen() {
             Conectează-te
           </Button>
           {error && (
-            <ErrorMessage message={error} />
+            <View style = {{marginTop: -30, marginBottom: 30}}>
+              <ErrorMessage message={error} />
+            </View>
           )}
         </View>
 
