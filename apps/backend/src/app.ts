@@ -33,7 +33,7 @@ app.get('/ping', (req, res) => res.send('AutoHub Backend is Online! 🚗'));
 
 const PORT = env.port || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 AutoHub Server Live`);
   console.log(`Mode: ${env.nodeEnv}`);
   console.log(`Port: ${env.port}`);
