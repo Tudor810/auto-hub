@@ -1,11 +1,11 @@
 import React from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useTheme, Button } from 'react-native-paper';
 import { Image } from 'expo-image';
 import { IAuthSuccessResponse } from '@auto-hub/shared/types/userTypes';
-import { router, useRouter } from 'expo-router';
+import { router} from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/utils/api';
 
@@ -15,25 +15,25 @@ export default function GoogleSignInButton({ setError }: { setError: (message: s
   const theme = useTheme();
   const styles = makeStyles(theme);
 
-  // GoogleSignin.configure({
-  //   webClientId: '64399865931-uv8ni2g23vbn427o2v6io528qkg67ovt.apps.googleusercontent.com',
-  //   iosClientId: '64399865931-v2t2v6qc02556ne273t93ne759b2b7pu.apps.googleusercontent.com',
-  //   offlineAccess: true, 
-  // });
+  GoogleSignin.configure({
+    webClientId: '64399865931-uv8ni2g23vbn427o2v6io528qkg67ovt.apps.googleusercontent.com',
+    iosClientId: '64399865931-v2t2v6qc02556ne273t93ne759b2b7pu.apps.googleusercontent.com',
+    offlineAccess: true, 
+  });
 
   const handleMobileSignIn = async () => {
-    //   try {
-    //     await GoogleSignin.hasPlayServices();
-    //     const response = await GoogleSignin.signIn();
-    //     const idToken = response.data?.idToken;
+      try {
+        await GoogleSignin.hasPlayServices();
+        const response = await GoogleSignin.signIn();
+        const idToken = response.data?.idToken;
 
-    //     if (idToken) {
-    //       sendTokenToBackend(idToken, 'idToken');
-    //     }
-    //   } catch (error) {
-    //     console.error("Mobile Google Sign-In Error:", error);
-    //     setError('Google Sign-In failed. Please try again.');
-    //   }
+        if (idToken) {
+          sendTokenToBackend(idToken, 'idToken');
+        }
+      } catch (error) {
+        console.error("Mobile Google Sign-In Error:", error);
+        setError('Google Sign-In failed. Please try again.');
+      }
   };
 
   let handleWebSignIn = () => { };
