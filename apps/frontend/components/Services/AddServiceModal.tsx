@@ -13,7 +13,7 @@ import {
 import { TextInput, useTheme, HelperText, Menu, Provider } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useInputProps } from '@/hooks/useInputProps'; // Adjust path if needed
-import { IServiceFormData, IService } from '@auto-hub/shared/types/serviceTypes'
+import { IServiceFormData, IService, ServiceCategory } from '@auto-hub/shared/types/serviceTypes'
 import ErrorMessage from '../ErrorMessage';
 
 
@@ -21,7 +21,7 @@ interface AddServiceModalProps {
     visible: boolean;
     onClose: () => void;
     onSave: (serviceData: IServiceFormData) => void;
-    categories: string[];
+    categories: ServiceCategory[];
     serviceToEdit?: IService | null;
     error: string
 }
@@ -331,7 +331,7 @@ export default function AddServiceModal({ visible, onClose, onSave, categories, 
                             >
                                 <Text style={styles.saveBtnText}>{serviceToEdit ? 'Salvează modificările' : 'Adaugă serviciu'}</Text>
                             </TouchableOpacity>
-                            {error && <ErrorMessage message={error} />}
+                            {error ? <ErrorMessage message={error} /> : null}
 
                         </ScrollView>
                     </View>

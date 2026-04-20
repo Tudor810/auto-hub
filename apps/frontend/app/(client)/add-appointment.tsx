@@ -481,7 +481,7 @@ export default function NewAppointmentScreen() {
                             >
                                 <Text style={styles.continueButtonText}>{step === 3 ? 'Confirmă programarea' : 'Continuă'} <Ionicons name="chevron-forward" size={16} /></Text>
                             </TouchableOpacity>
-                            {error && <ErrorMessage message={error} />}
+                            {error ? <ErrorMessage message={error} /> : null}
                         </View>
                     </View>
                 </>

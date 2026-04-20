@@ -195,6 +195,8 @@ export default function AddCarScreen() {
                     router.push("/(client)/(tabs)/home");
                 } else if(origin === 'garage') {
                     router.push("/(client)/my-garage");
+                } else {
+                    router.push("/(client)/my-garage");
                 }
             } else {
                 setError(resp.error || "");
@@ -472,7 +474,7 @@ export default function AddCarScreen() {
                     >
                         <Text style={styles.continueText}>{step === 2 ? 'Salvează mașina' : 'Continuă'}</Text>
                     </TouchableOpacity>
-                    {error && <ErrorMessage message={error} />}
+                    {error ? <ErrorMessage message={error} /> : null}
                 </View>
 
                 {/* SELECTION MODAL (Used for Make, Year, Fuel) */}

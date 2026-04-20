@@ -95,7 +95,7 @@ export default function MyGarageScreen() {
                   car={car}
                   onDelete={() => deleteCar(car._id)}
                   onEdit={() => router.push({
-                    pathname: '/(client)/add-car',
+                    pathname: '/(client)/add-car', 
                     params: {id: car._id, origin: 'garage'}
                   })}
                 />

@@ -10,6 +10,8 @@ import { ILocationFormData, ILocation } from '@auto-hub/shared/types/locationTyp
 import ErrorMessage from '@/components/ErrorMessage';
 import { useBusiness } from '@/context/BusinessContext';
 import { ServiceCategory } from '@auto-hub/shared/types/serviceTypes';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import { API_BASE_URL } from '@/utils/api';
 
 // --- DATE CONSTANTE ---
 const SERVICE_CATEGORIES: { id: ServiceCategory; label: string }[] = [
@@ -138,6 +140,9 @@ export default function AddLocationScreen() {
         // Otherwise, we are creating a new location, so return the empty defaults
         return defaultState;
     });
+    const [predictions, setPredictions] = useState<any[]>([]);
+    const [showDropdown, setShowDropdown] = useState(false);
+
 
     const [formErrors, setFormErrors] = useState({
         name: '',
@@ -246,7 +251,7 @@ export default function AddLocationScreen() {
         }
     };
 
-    const toggleService = (service: string) => {
+    const toggleService = (service: ServiceCategory) => {
 
         const isCurrentlySelected = formData.services.includes(service);
         const updatedServices = isCurrentlySelected
@@ -277,14 +282,58 @@ export default function AddLocationScreen() {
 
     const nameInputProps = useInputProps(undefined, !!formErrors.name);
     const addressInputProps = useInputProps(undefined, !!formErrors.address);
-    const latitudeInputProps = useInputProps(undefined, !!formErrors.latitude);
-    const longitudeInputProps = useInputProps(undefined, !!formErrors.longitude);
+
+    const searchAddress = async (text: string) => {
+        setFormData({ ...formData, address: text });
+
+        if (text.length < 3) {
+            setShowDropdown(false);
+            return;
+        }
+
+        try {
+            // Replace with your actual backend endpoint
+            const response = await fetch(`${API_BASE_URL}/api/locations/autocomplete?input=${encodeURIComponent(text)}`);
+            const data = await response.json();
+
+            if (data.predictions) {
+                setPredictions(data.predictions);
+                setShowDropdown(true);
+            }
+        } catch (error) {
+            console.error("Error fetching places:", error);
+        }
+    };
+
+    const handleSelectPlace = async (placeId: string, description: string) => {
+        setShowDropdown(false); // Hide the list
+        setFormData(prev => ({ ...prev, address: description })); // Update input text
+
+        try {
+            // Replace with your actual backend endpoint
+            const response = await fetch(`https://api.yourdomain.com/v1/places/details?place_id=${placeId}`);
+            const data = await response.json();
+
+            if (data.result && data.result.geometry) {
+                setFormData(prev => ({
+                    ...prev,
+                    coordinates: {
+                        latitude: String(data.result.geometry.location.lat),
+                        longitude: String(data.result.geometry.location.lng),
+                    }
+                }));
+                // Clear any validation errors
+                setFormErrors(prev => ({ ...prev, address: '', latitude: '', longitude: '' }));
+            }
+        } catch (error) {
+            console.error("Error fetching place details:", error);
+        }
+    };
+
 
 
     const renderStep1 = () => (
         <View style={styles.stepContainer}>
-
-            {/* 1. Am izolat centrarea doar pentru Titlu și Icon */}
             <View style={styles.stepHeaderCentered}>
                 <View style={[styles.iconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                     <Ionicons name="location-outline" size={32} color="#10B981" />
@@ -292,9 +341,9 @@ export default function AddLocationScreen() {
                 <Text style={[styles.stepTitle, { color: theme.colors.text.main }]}>Locație & Descriere</Text>
             </View>
 
-            {/* 2. NOU: Wrapper pentru formular care aplică automat spațiere (gap) între toate elementele */}
-            <View style={{ width: '100%', gap: 0 }}>
+            <View style={{ width: '100%', gap: 16 }}>
 
+                {/* Input Nume Locație */}
                 <View style={styles.inputWrapper}>
                     <TextInput
                         {...nameInputProps}
@@ -308,82 +357,91 @@ export default function AddLocationScreen() {
                     />
                     <HelperText type="error" visible={!!formErrors.name} style={styles.helperText}>{formErrors.name}</HelperText>
                 </View>
-                {/* Input Adresă */}
-                <View style={styles.inputWrapper}>
+
+                {/* Custom Places Autocomplete Input */}
+                <View style={[styles.inputWrapper, { zIndex: 999 }]}>
                     <TextInput
                         {...addressInputProps}
                         label="Adresă completă *"
-                        placeholder="Strada, Număr, Sector, Oraș"
+                        placeholder="Începe să tastezi adresa..."
                         value={formData.address}
-                        onChangeText={(t) => {
-                            setFormData({ ...formData, address: t });
-                            if (nextClicked[0]) setFormErrors(prev => ({ ...prev, address: validateAddress(t) }))
-                        }}
+                        onChangeText={searchAddress}
+                        onFocus={() => { if (predictions.length > 0) setShowDropdown(true) }}
                     />
-                    <HelperText type="error" visible={!!formErrors.address} style={styles.helperText}>{formErrors.address}</HelperText>
+                    <HelperText type="error" visible={!!formErrors.address} style={styles.helperText}>
+                        {formErrors.address}
+                    </HelperText>
+
+                    {/* The Dropdown Menu */}
+                    {showDropdown && predictions.length > 0 && (
+                        <View style={{
+                            position: 'absolute',
+                            top: 65, // Adjust based on your TextInput height
+                            left: 0,
+                            right: 0,
+                            backgroundColor: theme.colors.surface,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: theme.colors.border.light,
+                            elevation: 4, // Android shadow
+                            ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' } as any }),
+                            zIndex: 1000,
+                            maxHeight: 200,
+                        }}>
+                            <ScrollView keyboardShouldPersistTaps="handled">
+                                {predictions.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.place_id}
+                                        style={{
+                                            padding: 16,
+                                            borderBottomWidth: 1,
+                                            borderBottomColor: theme.colors.border.light
+                                        }}
+                                        onPress={() => handleSelectPlace(item.place_id, item.description)}
+                                    >
+                                        <Text style={{ color: theme.colors.text.main }}>
+                                            {item.description}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
                 </View>
-                {/* Container pentru Coordonate + Link Google Maps */}
-                <TouchableOpacity style={{ alignSelf: 'flex-start', marginLeft: 8 }}>
-                    <Text style={{ fontSize: 12, color: theme.colors.primary, opacity: 0.8 }}>Găsește coordonatele pe Google Maps →</Text>
-                </TouchableOpacity>
-                <View style={{ width: '100%' }}>
-                    <View style={styles.rowContainer}>
-                        <View style={styles.flexHalf}>
-                            <TextInput
-                                {...latitudeInputProps}
-                                label="Latitudine"
-                                placeholder="ex: 44.4268"
-                                value={formData.coordinates.latitude}
-                                onChangeText={(t) => {
-                                    setFormData({
-                                        ...formData, coordinates: {
-                                            ...formData.coordinates,
-                                            latitude: t
-                                        }
-                                    })
-                                    if (nextClicked[0]) setFormErrors(prev => ({ ...prev, latitude: validateLatitude(t) }))
-                                }}
-                                keyboardType="numeric"
-                            />
-                            <HelperText type="error" visible={!!formErrors.latitude} style={styles.helperText}>{formErrors.latitude}</HelperText>
-                        </View>
-                        <View style={styles.flexHalf}>
-                            <TextInput
-                                {...longitudeInputProps}
-                                label="Longitudine"
-                                placeholder="ex: 26.1025"
-                                value={formData.coordinates.longitude}
-                                onChangeText={(t) => {
-                                    setFormData({
-                                        ...formData, coordinates: {
-                                            ...formData.coordinates,
-                                            longitude: t
-                                        }
-                                    })
-                                    if (nextClicked[0]) setFormErrors(prev => ({ ...prev, longitude: validateLongitude(t) }))
-                                }}
-                                keyboardType="numeric"
-                            />
-                            <HelperText type="error" visible={!!formErrors.longitude} style={styles.helperText}>{formErrors.longitude}</HelperText>
-                        </View>
+
+                {/* Visual Confirmation of Coordinates */}
+                {formData.coordinates.latitude !== '' && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 12, borderRadius: 8, marginTop: -8, marginBottom: 8 }}>
+                        <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginRight: 8 }} />
+                        <Text style={{ fontSize: 12, color: theme.colors.text.main }}>
+                            Locație confirmată: {Number(formData.coordinates.latitude).toFixed(4)}, {Number(formData.coordinates.longitude).toFixed(4)}
+                        </Text>
                     </View>
-
-
-                </View>
-
-                {/* Input Descriere */}
-                <TextInput
-                    {...defaultInputProps}
-                    style={{ height: 100, width: '100%' }}
-                    label="Descriere business"
-                    placeholder="Scrie câteva cuvinte despre serviciile tale..."
-                    value={formData.description}
-                    onChangeText={(t) => setFormData({ ...formData, description: t })}
-                    multiline
-                    numberOfLines={4}
-                />
-
+                )}
+                <HelperText type="error" visible={!!formErrors.address} style={styles.helperText}>{formErrors.address}</HelperText>
             </View>
+
+            {/* Visual Confirmation of Coordinates (Optional/Read-Only) */}
+            {formData.coordinates.latitude !== '' && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 12, borderRadius: 8 }}>
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 12, color: theme.colors.text.main }}>
+                        Coordonate preluate automat: {Number(formData.coordinates.latitude).toFixed(4)}, {Number(formData.coordinates.longitude).toFixed(4)}
+                    </Text>
+                </View>
+            )}
+
+            {/* Input Descriere */}
+            <TextInput
+                {...defaultInputProps}
+                style={{ height: 100, width: '100%', marginTop: 8 }}
+                label="Descriere business"
+                placeholder="Scrie câteva cuvinte despre serviciile tale..."
+                value={formData.description}
+                onChangeText={(t) => setFormData({ ...formData, description: t })}
+                multiline
+                numberOfLines={4}
+            />
         </View>
     );
 
@@ -420,7 +478,7 @@ export default function AddLocationScreen() {
                     );
                 })}
             </View>
-            {formErrors.services && <ErrorMessage message={formErrors.services} />}
+            {formErrors.services ? <ErrorMessage message={formErrors.services} /> : null}
         </View>
     );
 
@@ -532,7 +590,7 @@ export default function AddLocationScreen() {
                     >
                         <Text style={styles.continueText}>{step === 3 ? 'Finalizează înregistrarea' : 'Continuă'}</Text>
                     </TouchableOpacity>
-                    {error && <ErrorMessage message={error} />}
+                    {error ? <ErrorMessage message={error} /> : null}
                 </View>
 
                 {/* MODAL PENTRU SELECTAREA OREI */}
@@ -549,7 +607,7 @@ export default function AddLocationScreen() {
                             </View>
 
                             <ScrollView showsVerticalScrollIndicator={false}>
-                                {formErrors.schedule && <ErrorMessage message={formErrors.schedule} />}
+                                {formErrors.schedule ? <ErrorMessage message={formErrors.schedule} /> : null}
                                 <View style={styles.timeOptionsGrid}>
                                     {TIME_OPTIONS.map(time => {
                                         // Evidențiază ora deja selectată

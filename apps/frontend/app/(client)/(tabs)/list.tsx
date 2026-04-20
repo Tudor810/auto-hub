@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ILocation } from '@auto-hub/shared/types/locationTypes';
 import { useAllLocations } from '@/hooks/useAllLocations';
+import { ServiceCategory } from '@auto-hub/shared/types/serviceTypes';
 
 export default function ListScreen() {
     const theme = useTheme<any>();
@@ -28,7 +29,7 @@ export default function ListScreen() {
 
     // --- State ---
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState('Toate');
+    const [activeFilter, setActiveFilter] = useState<ServiceCategory>('');
 
     // --- Responsive Logic ---
     const isWeb = Platform.OS === 'web';
@@ -38,7 +39,7 @@ export default function ListScreen() {
     // Sync filter if passed via URL
     useEffect(() => {
         if (id && typeof id === 'string') {
-            setActiveFilter(id);
+            setActiveFilter(id as ServiceCategory);
         }
     }, [id]);
 

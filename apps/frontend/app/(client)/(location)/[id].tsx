@@ -86,6 +86,8 @@ export default function LocationDetailsScreen() {
         );
     }
 
+    console.log(locationData);
+    
     if (!locationData) return null;
 
     return (
@@ -141,7 +143,7 @@ export default function LocationDetailsScreen() {
                             </View>
                             <View style={styles.infoRow}>
                                 <View style={[styles.iconBox, { backgroundColor: theme.colors.background }]}><Ionicons name="call-outline" size={22} color={theme.colors.text.main} /></View>
-                                <View style={styles.infoTextContainer}><Text style={[styles.infoMainText, { color: theme.colors.text.main }]}>{locationData.phone || "No phone added"}</Text></View>
+                                <View style={styles.infoTextContainer}><Text style={[styles.infoMainText, { color: theme.colors.text.main }]}>{locationData.companyId.phone || "Nu există număr de telefon adăugat"}</Text></View>
                             </View>
                             <View style={[styles.infoRow, { alignItems: 'flex-start' }]}>
                                 <View style={[styles.iconBox, { backgroundColor: theme.colors.background }]}><Ionicons name="time-outline" size={22} color={theme.colors.text.main} /></View>

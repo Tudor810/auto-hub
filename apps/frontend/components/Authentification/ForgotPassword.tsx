@@ -155,9 +155,9 @@ export default function ForgotPasswordScreen() {
               Trimite instrucțiuni
             </Button>
 
-            {error && (
+            {error ? (
               <ErrorMessage message={error} />
-            )}
+            ) : null}
           </View>
         )}
 

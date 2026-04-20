@@ -170,9 +170,9 @@ export default function SelectRole() {
             Continuă
           </Button>
 
-          {error && (
+          {error ? (
             <ErrorMessage message={error} />
-          )}
+          ) : null}
 
         </View>
 

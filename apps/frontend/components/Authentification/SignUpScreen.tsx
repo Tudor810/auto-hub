@@ -337,9 +337,9 @@ export default function SignUpScreen() {
               >
                 Creează contul
               </Button>
-              {error && (
+              {error ? (
                 <ErrorMessage message={error} />
-              )}
+              ) : null}
             </>
           )}
 

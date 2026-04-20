@@ -11,6 +11,8 @@ import { API_BASE_URL } from '@/utils/api';
 
 export default function GoogleSignInButton({ setError }: { setError: (message: string) => void }) {
 
+  const googleLogo = require('../../assets/images/google-logo.png');
+
   const { login } = useAuth();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -66,7 +68,6 @@ export default function GoogleSignInButton({ setError }: { setError: (message: s
           "Content-Type": "application/json"
         },
         credentials: "include",
-        // Send exactly what your Express route expects
         body: JSON.stringify(bodyData)
       });
 
@@ -99,7 +100,7 @@ export default function GoogleSignInButton({ setError }: { setError: (message: s
       labelStyle={styles.googleButtonText}
       icon={() => (
         <Image
-          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png' }}
+          source={googleLogo}
           style={{ width: 20, height: 20 }}
         />
       )}

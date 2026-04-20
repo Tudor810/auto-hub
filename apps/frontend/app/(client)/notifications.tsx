@@ -205,7 +205,7 @@ const toggleSwitch = async (key: keyof typeof preferences) => {
               })}
 
             </View>
-            {error && <ErrorMessage message={error}/>}
+            {error ? <ErrorMessage message={error}/> : null}
             {/* FOOTER TEXT */}
             <Text style={[styles.footerText, { color: theme.colors.text.placeholder || '#9CA3AF' }]}>
               Poți modifica aceste setări oricând
