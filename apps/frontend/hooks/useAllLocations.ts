@@ -30,6 +30,7 @@ export function useAllLocations() {
                 }
 
                 const data = await response.json();
+
                 setAllLocations(data);
             } catch (err: any) {
                 console.error("Error fetching all locations:", err);

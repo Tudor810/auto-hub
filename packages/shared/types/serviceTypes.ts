@@ -1,4 +1,5 @@
 export type ServiceCategory = 
+    | 'Toate'
     | 'Service' 
     | 'ITP' 
     | 'RCA' 
@@ -7,7 +8,8 @@ export type ServiceCategory =
     | 'Școală Șoferi' 
     | 'Redobândire' 
     | 'Piese Auto' 
-    | 'Tractări';
+    | 'Tractări'
+    | '';
 
 export interface IServiceFormData {
     name: string,

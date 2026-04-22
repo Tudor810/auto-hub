@@ -1,3 +1,5 @@
+import { ServiceCategory } from "./serviceTypes";
+
 export interface ILocationFormData {
     name: string;
     address: string;
@@ -6,7 +8,7 @@ export interface ILocationFormData {
         longitude: string;
     };
     description?: string;
-    services: string[];
+    services: ServiceCategory[];
 
     schedule: {
         [key: string]: {
@@ -15,13 +17,16 @@ export interface ILocationFormData {
             isOpen: boolean;
         }
     },
-    phone: String,
-    rating?: Number,
-    reviews?: Number
+    phone: string,
+    rating?: number,
+    reviews?: number
 }
 
 
 export interface ILocation extends ILocationFormData {
     _id: string,
-    companyId: string
+    companyId: {
+        _id: string,
+        phone: string
+    }
 };

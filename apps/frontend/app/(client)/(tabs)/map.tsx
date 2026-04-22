@@ -20,6 +20,7 @@ import { useAllLocations } from '@/hooks/useAllLocations';
 import * as Location from 'expo-location'
 import { useRouter } from 'expo-router';
 import { calculateDistance, formatDistance } from '@/utils/distance';
+import { ServiceCategory } from '@auto-hub/shared/types/serviceTypes';
 
 export default function MapScreen() {
 
@@ -31,7 +32,7 @@ export default function MapScreen() {
 
     // --- State ---
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState('Toate');
+    const [activeFilter, setActiveFilter] = useState<ServiceCategory>('Toate');
 
 
     // 2. The GPS Logic
@@ -109,7 +110,7 @@ export default function MapScreen() {
     const scrollViewRef = useRef<any>(null);
 
     useEffect(() => {
-        setActiveFilter(id as string || "Toate");
+        setActiveFilter(id as ServiceCategory || "Toate");
     }, [id])
 
     const filters = [
@@ -274,7 +275,7 @@ export default function MapScreen() {
                                         <TouchableOpacity
                                             key={filter.id}
                                             activeOpacity={0.8}
-                                            onPress={() => setActiveFilter(filter.id)}
+                                            onPress={() => setActiveFilter(filter.id as ServiceCategory)}
                                             style={[
                                                 styles.filterPill,
                                                 { backgroundColor: isActive ? theme.colors.primary : theme.colors.surface }

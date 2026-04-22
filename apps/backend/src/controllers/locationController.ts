@@ -85,13 +85,17 @@ export const editLocation = async (req: AuthRequest, res: Response) => {
 }
 
 export const getAllLocations = async (req: AuthRequest, res: Response) => {
-
     try {
-        const locations = await Location.find();
+        const locations = await Location.find()
+            .populate({
+                path: 'companyId',          // 1. Go from Location to Company
+                select: 'phone', 
+            });
+        
         res.status(200).json(locations);
-    } catch(error) {
-        console.log("Eroare:", error);
-        res.status(500).json({message: "Nu există conexiune la internet"})
+    } catch (error) {
+        console.error("Eroare server:", error);
+        res.status(500).json({ message: "Eroare la preluarea locațiilor" });
     }
 }
 

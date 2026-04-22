@@ -229,7 +229,7 @@ export default function MagicSearchScreen() {
                             </>
                         )}
                     </TouchableOpacity>
-                    {genError && <ErrorMessage message={genError} />}
+                    {genError ? <ErrorMessage message={genError} /> : null}
                 </View>
 
                 {/* COUNTY SELECTION MODAL */}
