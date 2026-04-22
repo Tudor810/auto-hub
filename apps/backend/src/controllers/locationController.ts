@@ -4,7 +4,7 @@ import Location from '../models/Location'
 import mongoose from 'mongoose'
 import { calculateAvailableSlots } from "../utils/timeUtils";
 import Appointment from "../models/Appointment";
-import { log } from "node:console";
+import { env } from '../config/env';
 
 export const getLocations = async (req: AuthRequest, res: Response) => {
     try {
@@ -84,6 +84,37 @@ export const editLocation = async (req: AuthRequest, res: Response) => {
     }
 }
 
+export const deleteLocation = async (req: AuthRequest, res: Response) => {
+    try {
+        const locationId = req.params.id as string;
+
+        // Validate the ID
+        if (!locationId || !mongoose.Types.ObjectId.isValid(locationId)) {
+            return res.status(400).json({ message: "ID-ul locației este invalid sau lipsește." });
+        }
+
+        // Delete the location
+        const deletedLocation = await Location.findOneAndDelete({
+            _id: locationId,
+        });
+
+        // Check if it actually existed before trying to delete
+        if (!deletedLocation) {
+            return res.status(404).json({ message: "Locația nu a fost găsită sau a fost deja ștearsă." });
+        }
+
+        // Send a 200 OK with a confirmation message
+        res.status(200).json({ 
+            message: "Locația a fost ștearsă cu succes.",
+            deletedId: deletedLocation._id 
+        });
+
+    } catch (error) {
+        console.error("Eroare:", error);
+        res.status(500).json({ message: "Eroare la ștergerea locației." });
+    }
+}
+
 export const getAllLocations = async (req: AuthRequest, res: Response) => {
     try {
         const locations = await Location.find()
@@ -91,7 +122,7 @@ export const getAllLocations = async (req: AuthRequest, res: Response) => {
                 path: 'companyId',          // 1. Go from Location to Company
                 select: 'phone', 
             });
-        
+
         res.status(200).json(locations);
     } catch (error) {
         console.error("Eroare server:", error);
@@ -176,3 +207,80 @@ export const getAvailableSlots = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: "Eroare internă la calcularea orelor disponibile." });
     }
 };
+
+
+// 1. Endpoint for Autocomplete (Typing)
+export const getGoogleLocations = async (req: AuthRequest, res: Response) => {
+    try {
+        const { input, sessiontoken } = req.query;
+
+        if (!input || typeof input !== 'string') {
+            return res.status(400).json({ message: "Textul de căutare (input) este obligatoriu." });
+        }
+
+        const apiKey = env.googleMapsApiKey;
+        const url = new URL('https://maps.googleapis.com/maps/api/place/autocomplete/json');
+        
+        url.searchParams.append('input', input);
+        url.searchParams.append('key', apiKey as string);
+        url.searchParams.append('language', 'ro');
+        url.searchParams.append('components', 'country:ro');
+        url.searchParams.append('types', 'establishment');
+        
+        // Pass the session token to Google
+        if (sessiontoken && typeof sessiontoken === 'string') {
+            url.searchParams.append('sessiontoken', sessiontoken);
+        }
+
+        const response = await fetch(url.toString());
+        const data = await response.json();
+
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Eroare în getGoogleLocations:", error);
+        res.status(500).json({ message: "Eroare internă la procesarea locațiilor Google." });
+    }
+}
+
+// 2. Endpoint for Details (Clicking the result)
+export const getGooglePlaceDetails = async (req: AuthRequest, res: Response) => {
+    try {
+        const { place_id, sessiontoken } = req.query;
+
+        if (!place_id || typeof place_id !== 'string') {
+            return res.status(400).json({ message: "ID-ul locației (place_id) este obligatoriu." });
+        }
+
+        const apiKey = env.googleMapsApiKey;
+        const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+        
+        url.searchParams.append('place_id', place_id);
+        url.searchParams.append('key', apiKey as string);
+        url.searchParams.append('language', 'ro');
+        
+        // Restrict fields to ONLY what you need to save massive amounts of money
+        // Geometry gets you lat/lng. Name gets the title. 
+        url.searchParams.append('fields', 'geometry,name,formatted_address,rating,user_ratings_total');
+
+        // Pass the session token to conclude the billing session
+        if (sessiontoken && typeof sessiontoken === 'string') {
+            url.searchParams.append('sessiontoken', sessiontoken);
+        }
+
+        const response = await fetch(url.toString());
+        const data = await response.json();
+
+        if (data.result) {
+            // Map the value to your frontend's expected key
+            data.result.reviews = data.result.user_ratings_total || 0;
+            
+            // Optional: delete the old key so your network payload is cleaner
+            delete data.result.user_ratings_total;
+        }
+
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Eroare în getGooglePlaceDetails:", error);
+        res.status(500).json({ message: "Eroare internă la preluarea detaliilor locației." });
+    }
+}

@@ -24,7 +24,7 @@ const dayScheduleSchema = new Schema({
   open: { type: String, required: true },
   close: { type: String, required: true },
   isOpen: { type: Boolean, default: true }
-}, { _id: false }); 
+}, { _id: false });
 
 const locationSchema = new Schema<ILocationDocument>(
   {
@@ -42,12 +42,12 @@ const locationSchema = new Schema<ILocationDocument>(
       sambata: dayScheduleSchema,
       duminica: dayScheduleSchema
     },
-    
+
     // 2. Define the GeoJSON location field for the database
     location: {
       type: {
-        type: String, 
-        enum: ['Point'], 
+        type: String,
+        enum: ['Point'],
         default: 'Point',
         required: true
       },
@@ -55,9 +55,21 @@ const locationSchema = new Schema<ILocationDocument>(
         type: [Number], // Note: MongoDB expects [longitude, latitude]
         required: true
       }
+    },
+    reviews: {
+      type: Number,
+      required: false
+    },
+    rating: {
+      type: Number,
+      required: false
+    },
+    googlePlaceId: {
+      type: String,
+      required: false
     }
   },
-  { 
+  {
     timestamps: true,
     // 3. CRUCIAL: Tell Mongoose to include virtuals when returning JSON
     toJSON: { virtuals: true },
@@ -71,7 +83,7 @@ locationSchema.index({ location: '2dsphere' });
 // 5. Create the Virtual "Bridge"
 locationSchema.virtual('coordinates')
   // GETTER: When you fetch from DB, convert GeoJSON numbers back to your frontend's String format
-  .get(function(this: ILocationDocument) {
+  .get(function (this: ILocationDocument) {
     if (!this.location || !this.location.coordinates) return undefined;
     return {
       latitude: this.location.coordinates[1].toString(),
@@ -79,7 +91,7 @@ locationSchema.virtual('coordinates')
     };
   })
   // SETTER: When frontend sends String coordinates, convert to GeoJSON numbers before saving
-  .set(function(this: any, coords: { latitude: string; longitude: string }) {
+  .set(function (this: any, coords: { latitude: string; longitude: string }) {
     if (coords && coords.latitude && coords.longitude) {
       this.set('location', {
         type: 'Point',

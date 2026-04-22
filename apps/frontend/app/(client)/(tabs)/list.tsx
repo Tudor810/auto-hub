@@ -205,10 +205,14 @@ export default function ListScreen() {
                                         </View>
 
                                         <View style={styles.cardSubRow}>
-                                            <Ionicons name="star" size={14} color="#FBBF24" />
-                                            <Text style={[styles.cardRating, { color: theme.colors.text.main }]}>{loc.rating?.toString() || "4.8"}</Text>
-                                            <Text style={styles.cardReviews}>({loc.reviews?.toString() || "156"})</Text>
-
+                                            {!loc.rating || loc.rating === -1 ? <Text style={[{ color: theme.colors.text.muted, textAlign: 'center' }]}>Rating-ul nu este disponibil</Text> :
+                                                <>
+                                                    <Ionicons name="star" size={14} color="#FBBF24" />
+                                                    <Text style={[styles.cardRating, { color: theme.colors.text.main }]}>{loc.rating}</Text>
+                                                    <Text style={styles.cardReviews}>({loc.reviews})</Text>
+                                                </>
+                                            }
+                                        
                                             <View style={styles.dotSeparator} />
                                             <Ionicons name="location-outline" size={12} color="#9CA3AF" />
                                             <Text style={styles.cardDistance}>2.5km</Text>

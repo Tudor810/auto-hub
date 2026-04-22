@@ -121,11 +121,12 @@ export default function LocationDetailsScreen() {
                                 <Text style={[styles.heroTitle, { color: "#F9FAFB" }]} numberOfLines={2}>{locationData.name}</Text>
                                 <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} style={{ marginLeft: 8, marginTop: 4 }} />
                             </View>
+                            {(locationData.rating && locationData.rating !== -1) ? 
                             <View style={styles.ratingRow}>
                                 <Ionicons name="star" size={18} color="#FBBF24" />
                                 <Text style={[styles.heroRating, { color: "#F9FAFB" }]}>{locationData.rating?.toString() || "5"}</Text>
                                 <Text style={[styles.heroReviews, { color: "#F9FAFB", opacity: 0.8 }]}>({locationData.reviews?.toString() || '0'} recenzii)</Text>
-                            </View>
+                            </View> : null}
                         </View>
                     </View>
 

@@ -1,32 +1,93 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions, Alert } from 'react-native';
+import { Snackbar, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ILocation } from '@auto-hub/shared/types/locationTypes';
 import { useBusiness } from '@/context/BusinessContext';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function LocationDetailsScreen({ }) {
     const theme = useTheme<any>();
     const { width } = useWindowDimensions();
     const { id, origin } = useLocalSearchParams();
 
-    const { locations, company } = useBusiness();
+    const { locations, company, deleteLocationData} = useBusiness();
 
     const location: ILocation = locations.find(loc => loc._id === id);
 
     const isWeb = Platform.OS === 'web';
     const isDesktop = isWeb && width >= 800;
     const maxWidth = isDesktop ? 800 : '100%';
+    const [error, setError] = useState("");
 
     const dayMap = ['duminica', 'luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata'];
     const todayKey = dayMap[new Date().getDay()];
+
+    const executeDelete = async () => {
+        try {
+            // Assuming your context handles the fetch to your new backend endpoint
+            const response = await deleteLocationData(location._id);
+
+            if (response.success) {
+                // Navigate back to wherever they came from
+                if (origin === "profile") {
+                    router.navigate('/(service)/profile');
+                } else {
+                    router.navigate('/(service)/dashboard');
+                }
+            } else {
+                // Handle backend error (you could use your Snackbar here instead of alert)
+                setError(response.error || "Eroare la ștergerea locației.");
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            setError("A apărut o eroare de rețea.");
+        }
+    };
+
+    // The Cross-Platform Confirmation Handler
+    const handleDeleteLocation = () => {
+        const title = "Șterge Locația";
+        const message = "Ești sigur că vrei să ștergi această locație? Toate programările și datele asociate vor fi pierdute definitiv.";
+
+        if (isWeb) {
+            // Web fallback using standard browser confirmation
+            const confirmed = window.confirm(`${title}\n\n${message}`);
+            if (confirmed) {
+                executeDelete();
+            }
+        } else {
+            // Native iOS/Android Alert
+            Alert.alert(
+                title,
+                message,
+                [
+                    { text: "Anulează", style: "cancel" },
+                    { 
+                        text: "Șterge", 
+                        style: "destructive", // Makes the button red on iOS!
+                        onPress: executeDelete 
+                    }
+                ],
+                { cancelable: true }
+            );
+        }
+    };
+
+    
+    if (!location) {
+        // Return null (or an empty View) so it doesn't try to read 'schedule' of undefined
+        return null; 
+    }
+
     const todaysSchedule = location.schedule?.[todayKey];
 
     // Format the display string
     const scheduleText = todaysSchedule?.isOpen
         ? `Astăzi: ${todaysSchedule.open} - ${todaysSchedule.close}`
         : 'Astăzi: Închis';
+
 
     return (
         // 1. Am adăugat contentContainerStyle={{ flexGrow: 1 }}
@@ -148,12 +209,12 @@ export default function LocationDetailsScreen({ }) {
 
                     {/* DANGER ZONE (Acum va sta mereu jos de tot) */}
                     <View style={styles.dangerZone}>
-                        <TouchableOpacity style={styles.dangerButton}>
+                        <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteLocation}>
                             <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                             <Text style={[styles.dangerText, { color: theme.colors.error }]}>Șterge această locație</Text>
                         </TouchableOpacity>
                     </View>
-
+                    {error ? <ErrorMessage message={error}/> : null}
                 </View>
             </View>
         </ScrollView>

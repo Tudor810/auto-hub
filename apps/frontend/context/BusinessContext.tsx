@@ -13,6 +13,7 @@ interface BusinessContextType {
   refreshBusinessData: () => Promise<void>;
   saveCompanyData: (formData: ICompanyFormData) => Promise<{ success: boolean; error?: string }>;
   saveLocationData: (formData: ILocationFormData, method: string, locationId?: string) => Promise<{ success: boolean; error?: string }>;
+  deleteLocationData: (locationId: string) => Promise<{ success: boolean, error?: string}>;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -100,6 +101,30 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
       return { success: false, error: "Eroare de rețea." };
     }
   }
+
+  const deleteLocationData = async (locationId: string) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/locations/${locationId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`, // Make sure your token is passed
+            },
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            // Automatically remove it from the local React state so the UI updates instantly
+            setLocations(prev => prev.filter(loc => loc._id !== locationId));
+            return { success: true };
+        } else {
+            const data = await response.json();
+            return { success: false, error: data.message };
+        }
+    } catch (error) {
+        return { success: false, error: "Eroare de rețea." };
+    }
+};
+
   // Funcția care aduce datele
   const refreshBusinessData = async () => {
     if (Platform.OS != 'web' && !token) return;
@@ -147,7 +172,7 @@ export function BusinessProvider({ children }: { children: React.ReactNode }): R
   }, [token]);
 
   return (
-    <BusinessContext.Provider value={{ company, locations, isLoadingBusiness, refreshBusinessData, saveCompanyData, saveLocationData }} >
+    <BusinessContext.Provider value={{ company, locations, isLoadingBusiness, refreshBusinessData, saveCompanyData, saveLocationData, deleteLocationData}} >
       {children}
     </BusinessContext.Provider>
   );

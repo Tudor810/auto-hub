@@ -347,11 +347,17 @@ export default function MapScreen() {
 
                                     {/* Ratings & Distance */}
                                     <View style={styles.cardSubRow}>
-                                        <Ionicons name="star" size={14} color="#FBBF24" />
-                                        <Text style={[styles.cardRating, { color: theme.colors.text.main }]}>4.8</Text>
-                                        <Text style={styles.cardReviews}>(156)</Text>
+
+                                        {!selectedLocation.rating || selectedLocation.rating === -1 ? <Text style={[ { color: theme.colors.text.muted }]}>Rating-ul nu este disponibil</Text> :
+                                            <>
+                                                <Ionicons name="star" size={14} color="#FBBF24" />
+                                                <Text style={[styles.cardRating, { color: theme.colors.text.main }]}>{selectedLocation.rating}</Text> 
+                                                <Text style={styles.cardReviews}>({selectedLocation.reviews})</Text>
+                                            </> 
+                                        }
+                                     
                                         <Ionicons name="location-outline" size={14} color={theme.colors.text.muted} style={{ marginLeft: 8 }} />
-                                        <Text style={styles.cardDistance}>{distanceText ? distanceText : "User Location is Not Avaible"}</Text>
+                                        <Text style={styles.cardDistance}>{distanceText ? distanceText : "GPS indisponibil"}</Text>
                                     </View>
 
                                     {/* Address */}

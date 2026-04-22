@@ -17,9 +17,10 @@ export interface ILocationFormData {
             isOpen: boolean;
         }
     },
-    phone: string,
-    rating?: number,
-    reviews?: number
+    phone: string;
+    googlePlaceId?: string;
+    rating?: number;
+    reviews?: number;
 }
 
 

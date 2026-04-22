@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useTheme, TextInput, HelperText, Snackbar } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,8 +10,9 @@ import { ILocationFormData, ILocation } from '@auto-hub/shared/types/locationTyp
 import ErrorMessage from '@/components/ErrorMessage';
 import { useBusiness } from '@/context/BusinessContext';
 import { ServiceCategory } from '@auto-hub/shared/types/serviceTypes';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { API_BASE_URL } from '@/utils/api';
+import * as Crypto from 'expo-crypto';
+import { useAuth } from '@/context/AuthContext';
 
 // --- DATE CONSTANTE ---
 const SERVICE_CATEGORIES: { id: ServiceCategory; label: string }[] = [
@@ -36,6 +37,7 @@ export default function AddLocationScreen() {
     const { saveLocationData, locations, company } = useBusiness();
     const { id, origin } = useLocalSearchParams();
     const existingLocation: ILocation = locations.find(loc => loc._id === id);
+    const { token } = useAuth();
 
     const defaultInputProps = useInputProps();
 
@@ -114,7 +116,10 @@ export default function AddLocationScreen() {
             acc[day.id] = { isOpen: day.id !== 'duminica', open: '08:00', close: '18:00' };
             return acc;
         }, {} as ILocationFormData['schedule']),
-        phone: company?.phone || ''
+        phone: company?.phone || '',
+        googlePlaceId: '',
+        reviews: -1,
+        rating: -1
     };
 
     // 3. Initialize the state using a lazy function
@@ -133,7 +138,10 @@ export default function AddLocationScreen() {
                 },
                 // Fallback to default schedule if for some reason it's missing
                 schedule: existingLocation.schedule || defaultState.schedule,
-                phone: company?.phone || ''
+                phone: company?.phone || '',
+                googlePlaceId: existingLocation.googlePlaceId || '',
+                reviews: existingLocation.reviews,
+                rating: existingLocation.rating
             };
         }
 
@@ -143,6 +151,17 @@ export default function AddLocationScreen() {
     const [predictions, setPredictions] = useState<any[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
 
+    // Refs for cost-saving logic
+    const sessionTokenRef = useRef<string | null>(null);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Helper to get or create a session token
+    const getSessionToken = () => {
+        if (!sessionTokenRef.current) {
+            sessionTokenRef.current = Crypto.randomUUID();
+        }
+        return sessionTokenRef.current;
+    };
 
     const [formErrors, setFormErrors] = useState({
         name: '',
@@ -223,14 +242,14 @@ export default function AddLocationScreen() {
                 const resp = await saveLocationData(formData, 'PUT', id as string);
 
                 if (resp.success === true) {
-                    router.back();
+                    router.navigate("/(service)/(tabs)/profile")
                 } else {
                     setError(resp.error || "");
                 }
             } else {
                 const resp = await saveLocationData(formData, 'POST');
                 if (resp.success === true) {
-                    router.back();
+                    router.navigate("/(service)/(tabs)/profile")
                 } else {
                     setError(resp.error || "");
                 }
@@ -283,54 +302,91 @@ export default function AddLocationScreen() {
     const nameInputProps = useInputProps(undefined, !!formErrors.name);
     const addressInputProps = useInputProps(undefined, !!formErrors.address);
 
-    const searchAddress = async (text: string) => {
-        setFormData({ ...formData, address: text });
+    // 1. Fetches suggestions with Debouncing and Session Token
+    const searchAddress = (text: string) => {
+        setFormData(prev => ({ ...prev, address: text }));
 
         if (text.length < 3) {
             setShowDropdown(false);
+            setPredictions([]);
             return;
         }
 
-        try {
-            // Replace with your actual backend endpoint
-            const response = await fetch(`${API_BASE_URL}/api/locations/autocomplete?input=${encodeURIComponent(text)}`);
-            const data = await response.json();
-
-            if (data.predictions) {
-                setPredictions(data.predictions);
-                setShowDropdown(true);
-            }
-        } catch (error) {
-            console.error("Error fetching places:", error);
+        // DEBOUNCE: Clear the previous timer if the user is still typing
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
         }
+
+        // DEBOUNCE: Set a new timer to wait 400ms after they stop typing
+        debounceTimerRef.current = setTimeout(async () => {
+            try {
+                const token = getSessionToken();
+
+                // Pass the input and the session token to YOUR backend
+                const response = await fetch(
+                    `${API_BASE_URL}/api/locations/google?input=${encodeURIComponent(text)}&sessiontoken=${token}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.predictions) {
+                    console.log(data);
+                    setPredictions(data.predictions);
+                    setShowDropdown(true);
+                }
+            } catch (error) {
+                console.error("Error fetching places:", error);
+            }
+        }, 400); // 400ms delay
     };
 
+    // 2. Fetches exact coordinates and CONSUMES the Session Token
     const handleSelectPlace = async (placeId: string, description: string) => {
-        setShowDropdown(false); // Hide the list
-        setFormData(prev => ({ ...prev, address: description })); // Update input text
+        setShowDropdown(false);
+        // Keep the description in the input for visual feedback
+        setFormData(prev => ({ ...prev, address: description }));
 
         try {
-            // Replace with your actual backend endpoint
-            const response = await fetch(`https://api.yourdomain.com/v1/places/details?place_id=${placeId}`);
+            const token = sessionTokenRef.current;
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/locations/google-details?place_id=${placeId}&sessiontoken=${token}` , {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
             const data = await response.json();
 
             if (data.result && data.result.geometry) {
                 setFormData(prev => ({
                     ...prev,
+                    // Save the exact formatted address from Google
+                    address: data.result.formatted_address || description,
+                    // Save the business name if they haven't typed one yet
+                    name: prev.name ? prev.name : data.result.name,
                     coordinates: {
                         latitude: String(data.result.geometry.location.lat),
                         longitude: String(data.result.geometry.location.lng),
-                    }
+                    },
+                    // NEW: Capture the Google Business Data!
+                    googlePlaceId: placeId,
+                    rating: data.result.rating || 0,
+                    reviews: data.result.reviews || 0
                 }));
-                // Clear any validation errors
+
                 setFormErrors(prev => ({ ...prev, address: '', latitude: '', longitude: '' }));
+                sessionTokenRef.current = null;
             }
         } catch (error) {
             console.error("Error fetching place details:", error);
         }
     };
-
-
 
     const renderStep1 = () => (
         <View style={styles.stepContainer}>
@@ -341,7 +397,8 @@ export default function AddLocationScreen() {
                 <Text style={[styles.stepTitle, { color: theme.colors.text.main }]}>Locație & Descriere</Text>
             </View>
 
-            <View style={{ width: '100%', gap: 16 }}>
+            {/* FIX: Added zIndex and elevation to the parent container */}
+            <View style={{ width: '100%', gap: 16, zIndex: 1000, elevation: 1000 }}>
 
                 {/* Input Nume Locație */}
                 <View style={styles.inputWrapper}>
@@ -359,15 +416,17 @@ export default function AddLocationScreen() {
                 </View>
 
                 {/* Custom Places Autocomplete Input */}
-                <View style={[styles.inputWrapper, { zIndex: 999 }]}>
+                {/* FIX: Elevated the zIndex and Android elevation for the dropdown wrapper */}
+                <View style={[styles.inputWrapper, { zIndex: 9999, elevation: 9999 }]}>
                     <TextInput
                         {...addressInputProps}
-                        label="Adresă completă *"
-                        placeholder="Începe să tastezi adresa..."
+                        label="Caută locația pe Google Maps *" // Changed Label
+                        placeholder="ex: AutoHUB Cluj, Service Pipera..." // Changed Placeholder
                         value={formData.address}
                         onChangeText={searchAddress}
                         onFocus={() => { if (predictions.length > 0) setShowDropdown(true) }}
                     />
+
                     <HelperText type="error" visible={!!formErrors.address} style={styles.helperText}>
                         {formErrors.address}
                     </HelperText>
@@ -376,16 +435,16 @@ export default function AddLocationScreen() {
                     {showDropdown && predictions.length > 0 && (
                         <View style={{
                             position: 'absolute',
-                            top: 65, // Adjust based on your TextInput height
+                            top: 65,
                             left: 0,
                             right: 0,
                             backgroundColor: theme.colors.surface,
                             borderRadius: 8,
                             borderWidth: 1,
                             borderColor: theme.colors.border.light,
-                            elevation: 4, // Android shadow
+                            elevation: 10, // FIX: Forces the shadow/dropdown above siblings on Android
                             ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' } as any }),
-                            zIndex: 1000,
+                            zIndex: 10000,
                             maxHeight: 200,
                         }}>
                             <ScrollView keyboardShouldPersistTaps="handled">
@@ -411,37 +470,35 @@ export default function AddLocationScreen() {
 
                 {/* Visual Confirmation of Coordinates */}
                 {formData.coordinates.latitude !== '' && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 12, borderRadius: 8, marginTop: -8, marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 12, borderRadius: 8, marginTop: -8 }}>
                         <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginRight: 8 }} />
                         <Text style={{ fontSize: 12, color: theme.colors.text.main }}>
                             Locație confirmată: {Number(formData.coordinates.latitude).toFixed(4)}, {Number(formData.coordinates.longitude).toFixed(4)}
                         </Text>
                     </View>
                 )}
-                <HelperText type="error" visible={!!formErrors.address} style={styles.helperText}>{formErrors.address}</HelperText>
+
+                {formData.googlePlaceId && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 12, borderRadius: 8, marginTop: -8 }}>
+                        <Ionicons name="logo-google" size={20} color="#3B82F6" style={{ marginRight: 8 }} />
+                        <Text style={{ fontSize: 12, color: theme.colors.text.main, flex: 1 }}>
+                            Business conectat: {formData.rating} ⭐ ({formData.reviews} recenzii)
+                        </Text>
+                    </View>
+                )}
+
+                {/* FIX: Moved the description input INSIDE this container so the gap and zIndex apply properly */}
+                <TextInput
+                    {...defaultInputProps}
+                    style={{ height: 100, width: '100%', marginTop: 8 }}
+                    label="Descriere business"
+                    placeholder="Scrie câteva cuvinte despre serviciile tale..."
+                    value={formData.description}
+                    onChangeText={(t) => setFormData({ ...formData, description: t })}
+                    multiline
+                    numberOfLines={4}
+                />
             </View>
-
-            {/* Visual Confirmation of Coordinates (Optional/Read-Only) */}
-            {formData.coordinates.latitude !== '' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 12, borderRadius: 8 }}>
-                    <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginRight: 8 }} />
-                    <Text style={{ fontSize: 12, color: theme.colors.text.main }}>
-                        Coordonate preluate automat: {Number(formData.coordinates.latitude).toFixed(4)}, {Number(formData.coordinates.longitude).toFixed(4)}
-                    </Text>
-                </View>
-            )}
-
-            {/* Input Descriere */}
-            <TextInput
-                {...defaultInputProps}
-                style={{ height: 100, width: '100%', marginTop: 8 }}
-                label="Descriere business"
-                placeholder="Scrie câteva cuvinte despre serviciile tale..."
-                value={formData.description}
-                onChangeText={(t) => setFormData({ ...formData, description: t })}
-                multiline
-                numberOfLines={4}
-            />
         </View>
     );
 
